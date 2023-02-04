@@ -109,18 +109,17 @@ public class Scheduler implements Runnable {
                 elevatorNotExecuted = false;
                 System.out.println("Request sent to elevator");
             }
+            else if (getSchedulerToElevatorCondition() == 0){
+                System.out.println("Request received from elevator");
+                notifySchedulerToFloor();
+                System.out.println("Request sent to floor");
+                break;
+            }
             else {
             	
                 try {
                     Thread.sleep(1000);
                 } catch (InterruptedException e) {}
-            }
-            
-            if (getSchedulerToElevatorCondition() == 0){
-                System.out.println("Request received from elevator");
-                notifySchedulerToFloor();
-                System.out.println("Request sent to floor");
-                break;
             }
         }
     }

@@ -11,10 +11,10 @@ import org.junit.jupiter.api.Test;
 /**
  * @author Fareen Lavji
  * 
- *@version 02.04.2023
+ * @version 02.04.2023
  */
 class SchedulerTest {
-	
+
 	Scheduler s = new Scheduler();
 
 	/**
@@ -40,7 +40,7 @@ class SchedulerTest {
 		assertEquals(s.getSchedulerToElevatorCondition(), 0);
 		assertEquals(s.getSchedulerToFloorCondition(), 0);
 	}
-	
+
 	/**
 	 * Tests the setFloorData method.
 	 */
@@ -50,7 +50,7 @@ class SchedulerTest {
 		s.setFloorData(fd);
 		assertEquals(s.getFloorData(), fd);
 	}
-	
+
 	/**
 	 * Tests the notifySchedulerToElevator method.
 	 */
@@ -59,16 +59,17 @@ class SchedulerTest {
 		s.notifySchedulerToElevator();
 		assertEquals(s.getSchedulerToElevatorCondition(), 1);
 	}
-	
+
 	/**
 	 * Tests the notifySchedulerToFloor method.
 	 */
 	@Test
 	void testNotifySchedulerToFloor() {
-		s.notifySchedulerToFloor();;
+		s.notifySchedulerToFloor();
+		;
 		assertEquals(s.getSchedulerToFloorCondition(), 1);
 	}
-	
+
 	/**
 	 * Tests the setSchedulerToElevatorConditionToFalse method.
 	 */
