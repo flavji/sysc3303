@@ -19,12 +19,10 @@ executing again, it prints out "Ending at Floor", along with the data in the CSV
 This program is made up of 5 files:
 
 	Main.java: A class that consists of the main method. 
-		     It is used to control the program and start
-		     the floor, elevator, and scheduler threads.
-	Floor.java: A class that consists of the floor thread that will execute first
-	 	      to send a request to the scheduler. Also, it is responsible for
-	            reading the CSV file and setting the FloorData Object, which notifies the scheduler
-                  to send a request to the elevator.
+		     It is used to control the program and start the floor, elevator, and scheduler threads.
+	Floor.java: A class that consists of the floor thread that will execute first to send a request to
+			the scheduler. Also, it is responsible for reading the CSV file and setting the FloorData
+			Object, which notifies the scheduler to send a request to the elevator.
 	Elevator.java: A class that consists of the elevator thread that will execute after the scheduler
 			   sends the request.
 	Scheduler.java: A class that consists of the scheduler thread (i.e., server) that is used to as a
@@ -61,7 +59,7 @@ Step 6: Click Finish.
 
 Step 7: The project should now be in Package Explorer.
 
-Step 8: Expand Iteration1. Then, expand src.
+Step 8: Expand project and expand src.
 
 Step 9: Right click on the project package, click on "Run as", then select 
 	  "1 Java Application". The program should now run and you should
@@ -69,13 +67,14 @@ Step 9: Right click on the project package, click on "Run as", then select
 	  or elevator is running. 
 
 To find the sequence and UML diagram that we constructed for this assignment,
-click on the ZIP file and there should be a sequence diagram and UML 
-diagram in two separate PDF files. 
+extract all files from A3G8_milestone_1.zip. there should be elevatorSimulation_UML.png
+and elevatorSimulation_sequenceDiagram.png in the root folder. 
 
 Credits:
 -------
-- Yash Kapoor (Worked on code, refactoring code, and README)
-- Faiaz Ahsan (Worked on code and rough draft of UML)
-- Zeid Alwash (Worked on code and rough draft of UML)
-- Flo Lavji	  (Worked on refactoring code, JUnit Tests, UML, and sequence diagrams) 
+- Yash Kapoor 		(Worked on code, refactoring code, UML, and README)
+- Faiaz Ahsan 		(Worked on code, rough draft of UML, and Sequence Diagram)
+- Zeid Alwash 		(Worked on code and rough draft of UML)
+- Fareen Lavji	  	(Worked on refactoring code, JUnit Tests, UML, setting up git repository,
+				initial deployment to GitHub, and proofreading README.txt) 
 - Harishan Amutheesan	(Worked on code and rough draft of UML)
