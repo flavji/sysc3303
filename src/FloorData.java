@@ -105,12 +105,7 @@ public class FloorData {
 	 * @param floorButton The String value of the direction the elevator is going in.
 	 * @throws IOException Throws exception if the floor button is incorrect.
 	 */
-	public void setFloorButton(String floorButton) throws IOException {
-		if (floorButton == "up" || floorButton == "down") {
-			this.floorButton = floorButton;
-		}
-		else {
-			throw new IOException ("The entered button is not accepted.");
-		}
+	public void setFloorButton(String floorButton)  {
+		this.floorButton = floorButton;
 	}
 }
