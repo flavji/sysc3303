@@ -54,6 +54,8 @@ public class Floor implements Runnable {
 			    		Integer.parseInt(elevatorData[1]),
 			    		elevatorData[2],
 			    		Integer.parseInt(elevatorData[3]));
+			    
+			    scheduler.addRequests(floorData);
 		    }
 		    br.close();
 	    }
