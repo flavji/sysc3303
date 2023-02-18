@@ -1,5 +1,6 @@
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedList;
 import java.util.PriorityQueue;
 import java.util.Queue;
 
@@ -30,7 +31,7 @@ public class Scheduler implements Runnable {
 	//private ArrayList<FloorData> floorRequests; // a queue of all floor requests
 	private Queue<FloorData> floorRequests;
 	
-	private Queue<FloorData> serviceableRequests; //a queue of all serviceable requests
+
 	
 	
 	/**
@@ -44,8 +45,8 @@ public class Scheduler implements Runnable {
 		this.elevators = new ArrayList<Elevator>();
 		this.idle = 1;
 		this.running = 0;
-		this.floorRequests = new PriorityQueue<FloorData>();
-		this.serviceableRequests = new PriorityQueue<FloorData>();
+		this.floorRequests = new LinkedList<FloorData>();
+
 		
 		
 		
@@ -124,8 +125,38 @@ public class Scheduler implements Runnable {
 	 * @param fd1
 	 */
 	public void addRequests(FloorData fd1) {
+		
+		
 		floorRequests.add(fd1);
 		
+		
+	}
+	
+	/**
+	 * remove floorData object to the queue
+	 * @param fd1
+	 */
+	public void removeRequests() {
+		
+		floorRequests.remove();
+		
+		
+		
+	}
+	
+	public void removeTail() {
+		for(int i = 0; i < getAllRequests().size(); i++ ) {
+			
+			
+		}
+	}
+	
+	public Queue<FloorData> getAllRequests() {
+		return floorRequests;
+	}
+	
+	public void setSchedulerToFloorConditionToFalse() {
+		schedulerToFloorCondition = 0;	
 	}
 
 	/**
@@ -142,94 +173,63 @@ public class Scheduler implements Runnable {
         } catch (InterruptedException e) {}
         
         while(true) {
-
-//        	switch(idle) {
-//        	case 0:
-//        		System.out.println("The Scheduler is Running");
-//        		break;
-//        	case 1:
-//        		System.out.println("The Scheduler is Idle");
-//        		break;
-//        	}
-//        	
-//        	switch(running) {
-//        	case 0:
-//        		System.out.println("The Scheduler is waiting to add to queue");
-//        		break;
-//        	case 1:
-//        		System.out.println("The Scheduler is adding to queue");
-//        		break;
-//        	
-//        	}
         	
-        	//call the executeRequest method here and if it returns true we add to q else we don't (stay Idle)
-        	FloorData fd1 = floorRequests.element();
         	
-//
-//        	if (idle == 1 && doneExecuting) {
-//        		System.out.println("Scheduler State = Idle");
-//        		break;
-//        	}
-//        	
-//        	if (idle == 1) {
-//        		System.out.println("Scheduler State = Idle");
-//        	}
+        	while(! getAllRequests().isEmpty()) {
+        		
 
-        	if (elevatorNotExecuted ) {
-            	
-                System.out.println("Request received from floor");
-                
-                //checking if request received from floor is serviceable
-            	if(elevators.get(0).executeRequest(fd1) && idle == 1) {
-            		floorRequests.remove();
-            		serviceableRequests.add(fd1);
-            		idle = 0;
-            		running = 1;
-            		
-            	}// need if statements one for scheduler running and request is serviceable, one for scheduler is running and request isnt serviceable
-            	//one for scheudler idle and its serviceable and one for idle and not serviceable
-            	
-                
-                System.out.println("Scheduler State = Processing Requests from floor ");
-                
-                
-                
-//                idle = 0;
-//                running = 1;
-                //add request to queue
-                notifySchedulerToElevator();
-                
-                
-                elevatorNotExecuted = false;
-                System.out.println("Request sent to elevator");
-                
-                
-                try {
-                	System.out.println("Scheduler State = Waiting ");
-                	
-                    Thread.sleep(1000);
-                } catch (InterruptedException e) {}
-                
-                
-            }
-        	//add && states condition here
-            else if (getSchedulerToElevatorCondition() == 0 ){
-            	System.out.println("Scheduler State = Processing Requests from Elevator ");
-            
-                System.out.println("Request received from elevator");
 
-                notifySchedulerToFloor();
-                System.out.println("Request sent to floor");
-                doneExecuting = true;
-                break;
-                
-            }
-            else {
-            	
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException e) {}
-            }
+	
+	        	if (elevatorNotExecuted ) {
+	            	
+	                System.out.println("Scheduler: Request received from floor");
+	                
+	            	//call the executeRequest method here and if it returns true we add to q else we don't (stay Idle)
+	            	System.out.println("Floor Requests schd: " + floorRequests.toString());
+	            	
+	            		            	
+	                
+	                System.out.println("Scheduler State = Processing Requests from floor ");
+	                
+		                
+	                //add request to queue
+	                notifySchedulerToElevator();
+	                
+	                
+	                
+	                elevatorNotExecuted = false;
+	                
+	                System.out.println("Scheduler:Request sent to elevator");
+	                
+	                
+	                try {
+	                	System.out.println("Scheduler State = Idle ");
+	                	
+	                    Thread.sleep(1000);
+	                } catch (InterruptedException e) {}
+	                
+	                
+	            }
+	        	//add && states condition here
+	            else if (getSchedulerToElevatorCondition() == 0 ){
+	            	System.out.println("Scheduler State = Processing Requests from Elevator ");
+	            
+	                System.out.println("Scheduler: Request received from elevator");
+	
+	                notifySchedulerToFloor();
+	                System.out.println("Scheduler: Request sent to floor");
+	                doneExecuting = true;
+	                elevatorNotExecuted = true;
+	                break;
+	                
+	            }
+	            else {
+	            	
+	                try {
+	                    Thread.sleep(1000);
+	                } catch (InterruptedException e) {}
+	            }
+	        }
         }
         
     }

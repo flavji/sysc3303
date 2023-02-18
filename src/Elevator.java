@@ -47,7 +47,6 @@ public class Elevator implements Runnable {
 	public int notifyElevatorToScheduler() {
  		elevatorToSchedulerCondition = 1;
  		scheduler.setSchedulerToElevatorConditionToFalse();
- 		//call another method, to execute next request
  		
  		
  		return elevatorToSchedulerCondition;
@@ -70,6 +69,7 @@ public class Elevator implements Runnable {
 			canService = false;
 			
 		}else if(upState == 1 && currentFloor < fd.getDestinationFloor()) {
+			currentFloor = fd.getDestinationFloor();
 			canService = true;
 			
 		}
@@ -77,6 +77,7 @@ public class Elevator implements Runnable {
 			canService = false;	
 		}
 		else if(downState == 1 && currentFloor > fd.getDestinationFloor()) {
+			currentFloor = fd.getDestinationFloor();
 			canService = true;
 			
 		}
@@ -93,29 +94,56 @@ public class Elevator implements Runnable {
 	 */
 	@Override
     public void run() { 
-        while(true) {
+        while( true ) {
         	
-            if (scheduler.getFloorData() != null && scheduler.getSchedulerToElevatorCondition() == 1 && executeRequest(scheduler.getFloorData())) { 
-            	System.out.println("Elevator State: processing request");
-                System.out.println("\tElevator Received Request: " +
-                		"\n\t\tInitial Floor: " + scheduler.getFloorData().getInitialFloor() +
-                		" Destination Floor: " + scheduler.getFloorData().getDestinationFloor() +
-                		" Floor Button: " + scheduler.getFloorData().getFloorButton() +
-                		" Time: " + scheduler.getFloorData().getTime());
-                notifyElevatorToScheduler();// going back to scheduler
-            }else if( scheduler.getFloorData() != null && !executeRequest(scheduler.getFloorData())  ) {
-            	System.out.println("Elevator State: can't process request");
-            	
-            }
-            else {
-            	
-            	
-                try {
+
+        	
+
+        	
+        	if (scheduler.getSchedulerToElevatorCondition() == 1 ) {
+
+            	System.out.println("Requests size: " + scheduler.getAllRequests().size());
+
+	        	while( !scheduler.getAllRequests().isEmpty() ) {
+	        		
+	        		if(executeRequest((FloorData) scheduler.getAllRequests().element())) {
+	       			  
+	       	            	System.out.println("Elevator State: processing request");
+	       	                System.out.println("\tElevator Received Request: " +
+	       	                		"\n\t\tInitial Floor: " + ((FloorData) scheduler.getAllRequests().element()).getInitialFloor() +
+	    	                		" Destination Floor: " + ((FloorData) scheduler.getAllRequests().element()).getDestinationFloor() +
+	    	                		" Floor Button: " + ((FloorData)scheduler.getAllRequests().element()).getFloorButton() +
+	    	                		" Time: " + ((FloorData)scheduler.getAllRequests().element()).getTime());
+	       	                
+	       	                upState = 0;
+	       	                downState = 0;
+	       	                stationary = 1;
+	       	                System.out.println("Elevator State: request was processed, Elevator is Stationary");
+	       	               
+	       	                notifyElevatorToScheduler();// going back to scheduler
+	       	                break;
+	       	            }else {
+	       	             try {
+	                         Thread.sleep(1000);
+	                     } catch (InterruptedException e) {}
+	                 }
+       	            
+       	            	
+       	            }
+        		
+        	}else {
+        		try {
                     Thread.sleep(1000);
                 } catch (InterruptedException e) {}
-            }
+        		
+        	}
         }
-            
-    }
-	
+	}
 }
+        		
+
+         	
+            
+    
+	
+

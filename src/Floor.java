@@ -16,6 +16,7 @@ import java.text.*;
 public class Floor implements Runnable {
 	private Scheduler scheduler;
 	private FloorData floorData; 
+	private FloorData floorData2;
 	private String floorRequests;
 	
 	/**
@@ -50,13 +51,17 @@ public class Floor implements Runnable {
 			    DateFormat formatter = new SimpleDateFormat("hh:mm:ss");
 			    Date date = (Date) formatter.parse(start_date);
 			   
+			    
 			    setFloorData(date,
 			    		Integer.parseInt(elevatorData[1]),
 			    		elevatorData[2],
 			    		Integer.parseInt(elevatorData[3]));
 			    
-			    scheduler.addRequests(floorData);
+			    
+
+
 		    }
+	    
 		    br.close();
 	    }
 	    catch (IOException e) {} 
@@ -72,20 +77,33 @@ public class Floor implements Runnable {
 	public void run() {
         System.out.println("Starting at Floor");
         unwrapData();
-        scheduler.setFloorData(floorData);
+        //scheduler.setFloorData(floorData);
         
         try {
             Thread.sleep(1000);
         } catch (InterruptedException e) {}
 
         while(true) {
+        	
             if(scheduler.getSchedulerToFloorCondition() == 1) {
                 System.out.println("\tArrived At Floor:\n" +
-                		"\t\tInitial Floor: " + floorData.getInitialFloor() +
-                		" Destination Floor: " + floorData.getDestinationFloor() +
-                		" Floor Button: " + floorData.getFloorButton() +
-                		" Time: " + floorData.getTime());
-                System.exit(1);
+	                		"\n\t\tInitial Floor: " + ((FloorData) scheduler.getAllRequests().element()).getInitialFloor() +
+                		" Destination Floor: " + ((FloorData) scheduler.getAllRequests().element()).getDestinationFloor() +
+                		" Floor Button: " + ((FloorData)scheduler.getAllRequests().element()).getFloorButton() +
+                		" Time: " + ((FloorData)scheduler.getAllRequests().element()).getTime());
+                
+                System.out.println("Time of the q: " + scheduler.getAllRequests().element().getTime());
+                System.out.println("Removing this: " + scheduler.getAllRequests().remove().getTime());
+                scheduler.setSchedulerToFloorConditionToFalse();
+                
+                System.out.println("All requests: " + scheduler.getAllRequests());
+                
+                
+                if(scheduler.getAllRequests().isEmpty()) {
+              
+                	 System.exit(1);	
+                }
+               
             } else {
             	
                 try {
@@ -96,10 +114,16 @@ public class Floor implements Runnable {
     }
 	
 	private void setFloorData(Date date, int iFloor, String direction, int dFloor) throws IOException {
-		floorData.setTime(date);
-	    floorData.setInitialFloor(iFloor);
-	    floorData.setFloorButton(direction); // Up & Down
-	    floorData.setDestinationFloor(dFloor);
+		FloorData fd = new FloorData(10);
+		
+		fd.setTime(date);
+		fd.setInitialFloor(iFloor);
+		fd.setFloorButton(direction); // Up & Down
+		fd.setDestinationFloor(dFloor);
+		
+	    scheduler.addRequests(fd);
+	    System.out.println("Scheduler: A request has been added to the queue");
+	    
 	}
 	
 }
