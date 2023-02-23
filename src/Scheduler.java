@@ -17,23 +17,24 @@ import java.util.Queue;
  */
 public class Scheduler implements Runnable {
 	
-	private FloorData floorData;
 	private ArrayList<Elevator> elevators; // collection of elevators
 	private int schedulerToElevatorCondition; // equals to 1 if elevator class can work
 	private int schedulerToFloorCondition; // equals to 1 if floor class can work
 	
-	//private String [] states;
-	private int running;
 	private int idle;
-	private boolean doneExecuting;
-	
-	
-	//private ArrayList<FloorData> floorRequests; // a queue of all floor requests
-	private Queue<FloorData> floorRequests;
-	
 
+	private Queue<FloorData> allFloorRequests;   // a queue of all requests in the CSV file
+	private Queue<FloorData> serviceableFloorRequests;    // a queue of serviceable requests at the moment
 	
-	
+	// Assume all the requests in the CSV file come in simultaneously or around roughly the same time.
+	// Based off that, we check whether the request is serviceable.
+	// If it is, then add it to the serviceableFloorRequests queue, service it,
+	// and remove it from both the queues. 
+	// If it is not serviceable at the moment, skip over it 
+	// and do NOT add it to the serviceableFloorRequests queue.
+	// Come back to the non-serviceable requests after the serviceable requests have been serviced
+	// and check whether they are serviceable again. 
+
 	/**
 	 * Constructor for Scheduler.
 	 */
@@ -44,30 +45,10 @@ public class Scheduler implements Runnable {
 		this.schedulerToFloorCondition = 0;
 		this.elevators = new ArrayList<Elevator>();
 		this.idle = 1;
-		this.running = 0;
-		this.floorRequests = new LinkedList<FloorData>();
+		this.allFloorRequests = new LinkedList<FloorData>();
+		this.serviceableFloorRequests = new LinkedList<FloorData>();
 
-		
-		
-		
-		
-		
-		this.doneExecuting = false;
-		
-		
-
-		
 		elevators.add(new Elevator(this)); //adding one default elevator to elevator list
-		
-	}
-	
-	/**
-	 * Gets the FloorData Object.
-	 * 
-	 * @return A FloorData Object that contains all the values that are defined in the floorRequests.csv file.
-	 */
-	public FloorData getFloorData() {
-		return floorData; 
 	}
 
 	/**
@@ -86,15 +67,6 @@ public class Scheduler implements Runnable {
 	 */
 	public int getSchedulerToFloorCondition() {
 		return schedulerToFloorCondition;
-	}
-		
-	/**
-	 * Sets the FloorData Object.
-	 * 
-	 * @param fd A FloorData Object that contains all the values that are defined in the floorRequests.csv file.
-	 */
-	public void setFloorData(FloorData fd) {
-		this.floorData = fd; 
 	}
 	
 	/**
@@ -121,40 +93,55 @@ public class Scheduler implements Runnable {
 	}
 	
 	/**
-	 * Add floorData object to the queue
-	 * @param fd1
+	 * Add requests to the allFloorRequests queue
+	 * @param fd	a FloorData Object that gets added to the queue
 	 */
-	public void addRequests(FloorData fd1) {
-		
-		
-		floorRequests.add(fd1);
-		
-		
+	public void addRequests(FloorData fd) {
+		allFloorRequests.add(fd);
 	}
 	
 	/**
-	 * remove floorData object to the queue
-	 * @param fd1
+	 * Add requests to the servicableFloorRequests queue 
+	 * @param fd	a FloorData Object that gets added to the queue
+	 */
+	public void addServiceableRequests(FloorData fd) {
+		serviceableFloorRequests.add(fd);
+	}
+	
+	/**
+	 * remove the first FloorData Object from the servicableFloorRequests queue
+	 */
+	public void removeServiceableRequests() {
+		serviceableFloorRequests.remove();
+	}
+	
+	/**
+	 * remove the first FloorData Object from the allFloorRequests queue
 	 */
 	public void removeRequests() {
-		
-		floorRequests.remove();
-		
-		
-		
+		allFloorRequests.remove();
 	}
 	
-	public void removeTail() {
-		for(int i = 0; i < getAllRequests().size(); i++ ) {
-			
-			
-		}
-	}
-	
+	/**
+	 * Get the allFloorRequests queue
+	 * @return	a Queue, the allFloorRequests queue
+	 */
 	public Queue<FloorData> getAllRequests() {
-		return floorRequests;
+		return allFloorRequests;
 	}
 	
+	/**
+	 * Get the serviceableFloorRequests queue 
+	 * @return	a Queue, the serviceableFloorRequests queue
+	 */
+	public Queue<FloorData> getServiceableRequests() {
+		return serviceableFloorRequests;
+	}
+	
+	/**
+	 * Sets the schedulerToFloorCondition to 0 to prevent the floor from executing when
+	 * we are going back to the scheduler
+	 */
 	public void setSchedulerToFloorConditionToFalse() {
 		schedulerToFloorCondition = 0;	
 	}
@@ -168,68 +155,53 @@ public class Scheduler implements Runnable {
         boolean elevatorNotExecuted = true;
         
         try {
-        	
             Thread.sleep(1000);
         } catch (InterruptedException e) {}
         
         while(true) {
-        	
-        	
-        	while(! getAllRequests().isEmpty()) {
-        		
-
-
-	
-	        	if (elevatorNotExecuted ) {
-	            	
-	                System.out.println("Scheduler: Request received from floor");
-	                
-	            	//call the executeRequest method here and if it returns true we add to q else we don't (stay Idle)
-	            	System.out.println("Floor Requests schd: " + floorRequests.toString());
-	            	
-	            		            	
-	                
-	                System.out.println("Scheduler State = Processing Requests from floor ");
-	                
-		                
-	                //add request to queue
-	                notifySchedulerToElevator();
-	                
-	                
-	                
-	                elevatorNotExecuted = false;
-	                
-	                System.out.println("Scheduler:Request sent to elevator");
-	                
-	                
+        	while(!getAllRequests().isEmpty() || !getServiceableRequests().isEmpty()) {
+	        	if (elevatorNotExecuted && getSchedulerToFloorCondition() == 0) {
+	        		// tell the elevator to start executing
 	                try {
-	                	System.out.println("Scheduler State = Idle ");
-	                	
 	                    Thread.sleep(1000);
 	                } catch (InterruptedException e) {}
+	        		idle = 0;
+	                System.out.println("\nScheduler: Request received from floor");	                
+	                System.out.println("Scheduler State = processing Requests from floor ");
 	                
+	                notifySchedulerToElevator();
+	                    
+	                elevatorNotExecuted = false;
+	                System.out.println("Scheduler: Request sent to elevator\n");     
 	                
 	            }
-	        	//add && states condition here
-	            else if (getSchedulerToElevatorCondition() == 0 ){
-	            	System.out.println("Scheduler State = Processing Requests from Elevator ");
-	            
+	            else if (getSchedulerToElevatorCondition() == 0 && idle == 0) {
+	            	// tell the floor to start executing
+	            	idle = 0;
+	            	System.out.println("\nScheduler State = Processing Requests from elevator ");
 	                System.out.println("Scheduler: Request received from elevator");
 	
-	                notifySchedulerToFloor();
 	                System.out.println("Scheduler: Request sent to floor");
-	                doneExecuting = true;
-	                elevatorNotExecuted = true;
-	                break;
+	               
+	                notifySchedulerToFloor();
 	                
+	                elevatorNotExecuted = true;
+	          
+	                break;
 	            }
 	            else {
-	            	
 	                try {
 	                    Thread.sleep(1000);
 	                } catch (InterruptedException e) {}
 	            }
 	        }
+    		idle = 1;
+    		if (idle == 1 && getAllRequests().isEmpty() && getServiceableRequests().isEmpty()) {
+    			// idle when all the requests in the allFloorRequests have been serviced
+    			// and both queues are empty
+    			System.out.println("Scheduler State = Idle");
+    			break;
+    		}
         }
         
     }
