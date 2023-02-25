@@ -159,6 +159,9 @@ public class Scheduler implements Runnable {
         } catch (InterruptedException e) {}
         
         while(true) {
+        	System.out.println("SERVICEABLE REQUESTS QUEUE: " + getServiceableRequests());
+        	System.out.println("ALL REQUESTS QUEUE: " + getAllRequests());
+        	
         	while(!getAllRequests().isEmpty() || !getServiceableRequests().isEmpty()) {
 	        	if (elevatorNotExecuted && getSchedulerToFloorCondition() == 0) {
 	        		// tell the elevator to start executing
@@ -177,7 +180,6 @@ public class Scheduler implements Runnable {
 	            }
 	            else if (getSchedulerToElevatorCondition() == 0 && idle == 0) {
 	            	// tell the floor to start executing
-	            	idle = 0;
 	            	System.out.println("\nScheduler State = Processing Requests from elevator ");
 	                System.out.println("Scheduler: Request received from elevator");
 	

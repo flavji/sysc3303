@@ -84,7 +84,6 @@ public class Floor implements Runnable {
                 		" Time: " + ((FloorData)scheduler.getServiceableRequests().element()).getTime() + "\n\n");
                 
                 
-                
                 // removes all the requests that have already been serviced from the allFloorRequests queue
                 scheduler.getAllRequests().removeAll(scheduler.getServiceableRequests());
                 

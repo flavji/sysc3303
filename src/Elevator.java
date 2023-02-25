@@ -74,6 +74,7 @@ public class Elevator implements Runnable {
 			canService = false;
 			
 		} else if(upState == 1 && currentFloor < fd.getDestinationFloor()) {
+			downState = 0;
 			currentFloor = fd.getInitialFloor();
 			canService = true;
 		}
@@ -81,6 +82,7 @@ public class Elevator implements Runnable {
 			canService = false;	
 		}
 		else if(downState == 1 && currentFloor > fd.getDestinationFloor()) {
+			upState = 0;
 			currentFloor = fd.getInitialFloor();
 			canService = true;
 			
@@ -108,9 +110,12 @@ public class Elevator implements Runnable {
     	        		if(executeRequest(item))  
     	        		{
     	        			    scheduler.addServiceableRequests(item);
-    	       	                upState = 0;
-    	       	                downState = 0;
-    	       	                idle = 0;
+    	        			    
+    	        			    
+    	        			    // setting these to 0 since our elevator is stationary
+    	        			    // since it is neither going up nor down - it is not servicing anything yet
+    	        			    upState = 0;
+    	        			    downState = 0;
     	        		}
     	        		else {
     	        			// Otherwise, output a message that the request cannot be serviced at the moment
@@ -122,7 +127,7 @@ public class Elevator implements Runnable {
 	        		// Go through the serviceableRequests queue
 	        		// until all requests have been serviced by the elevator
 	        		
-   	            	System.out.println("\nElevator State: processing request");
+   	            	System.out.println("\nElevator: processing request");
    	                System.out.println("\n\tElevator Received Request: " +
    	                		"\n\t\tInitial Floor: " + ((FloorData) scheduler.getServiceableRequests().element()).getInitialFloor() +
 	                		" Destination Floor: " + ((FloorData) scheduler.getServiceableRequests().element()).getDestinationFloor() +
@@ -130,11 +135,18 @@ public class Elevator implements Runnable {
 	                		" Time: " + ((FloorData)scheduler.getServiceableRequests().element()).getTime() + "\n");
    	                
    	          
-   	                System.out.println("Elevator State: request was processed. Elevator is Stationary.");
+   	                // calling this method to update the states
+  	                executeRequest(scheduler.getServiceableRequests().element());
+   	 			    System.out.println("Elevator upState = " + upState);
+   	 			    System.out.println("Elevator downState = " + downState);
+   	                System.out.println("Elevator: request was processed. Elevator is Stationary.");
    	               
    	                upState = 0;
    	                downState = 0;
+   	                // Elevator is idle only when it executes ALL the requests 
+   	                // Therefore, we are setting idle equals 0 since the elevator is stationary, but not idle yet
    	                idle = 0;
+   	                
    	                notifyElevatorToScheduler();    // going back to scheduler from elevator, so scheduler can send the data to the floor
    	                break;    	
        	         }
@@ -144,6 +156,8 @@ public class Elevator implements Runnable {
 	    			// idle when all the requests in the allFloorRequests have been serviced
 	    			// and both queues are empty
 	    			System.out.println("Elevator State = Idle");
+	    			
+	    			// setting idle equal to 0 to break out of the while loop and stop the elevator from executing
 	    			idle = 0;
 	    		}
         		try {
