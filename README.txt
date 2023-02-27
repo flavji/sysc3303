@@ -69,4 +69,4 @@ Credits:
 - Zeid Alwash 		(Worked on code and rough draft of UML and README)
 - Fareen Lavji	  	(Worked on refactoring code, JUnit Tests, UML, setting up git repository,
 				initial deployment to GitHub, and proofreading README.txt) 
-- Harishan Amutheesan	(Worked on code and rough draft of UML)
+- Harishan Amutheesan	(Worked on code, rough draft of UML, State Machine Diagrams)
