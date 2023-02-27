@@ -55,7 +55,18 @@ class ElevatorTest {
 	}
 	
 	/**
-	 * Tests the executeRequest method if the elevator is going down after going up.
+	 * Tests the executeRequest method if the elevator is going up but cannot go up.
+	 * @throws IOException 
+	 */
+	@Test
+	void testExecuteRequestUpFail() throws IOException {
+		fd.setInitialFloor(0);
+		fd.setDestinationFloor(1);
+		assertFalse(e.executeRequest(fd));
+	}
+	
+	/**
+	 * Tests the executeRequest method if the elevator is going down.
 	 * @throws IOException 
 	 */
 	@Test
@@ -63,6 +74,17 @@ class ElevatorTest {
 		fd.setInitialFloor(3);
 		fd.setDestinationFloor(1);
 		assertTrue(e.executeRequest(fd));
+	}
+	
+	/**
+	 * Tests the executeRequest method if the elevator is going down but cannot go down.
+	 * @throws IOException 
+	 */
+	@Test
+	void testExecuteRequestDownFails() throws IOException {		
+		fd.setInitialFloor(4);
+		fd.setDestinationFloor(3);
+		assertFalse(e.executeRequest(fd));
 	}
 	
 	/**
@@ -81,7 +103,7 @@ class ElevatorTest {
 	}
 	
 	/**
-	 * Tests the executeRequest method if the elevator is going down after going up.
+	 * Tests the executeRequest method if the elevator is going up after going down.
 	 * @throws IOException 
 	 */
 	@Test
