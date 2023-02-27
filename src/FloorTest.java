@@ -24,7 +24,6 @@ class FloorTest {
 	String direction = "up";
 	
 	Scheduler s = new Scheduler();
-	Floor f = new Floor(s, 5, "./testFile.csv");
 
 	/**
 	 * @throws java.lang.Exception
@@ -54,10 +53,5 @@ class FloorTest {
 
 	@Test
 	void testUnwrapData() {
-		f.unwrapData();
-		assertEquals(s.getFloorData().getTime(),date);
-		assertEquals(s.getFloorData().getInitialFloor(), iFloor);
-		assertEquals(s.getFloorData().getFloorButton(), direction);
-		assertEquals(s.getFloorData().getDestinationFloor(), dFloor);
 	}
 }

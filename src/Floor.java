@@ -11,7 +11,7 @@ import java.text.*;
  * @author Fareen Lavji
  * @author Harishan Amutheesan
  * 
- * @version 02.04.2023
+ * @version 02.27.2023
  */
 public class Floor implements Runnable {
 	private Scheduler scheduler;
@@ -123,7 +123,7 @@ public class Floor implements Runnable {
 		
 		fd.setTime(date);
 		fd.setInitialFloor(iFloor);
-		fd.setFloorButton(direction); // Up & Down
+		fd.setFloorButton(direction.toLowerCase()); // Up & Down
 		fd.setDestinationFloor(dFloor);
 		
 		// adding all the requests to the queue that are in the CSV file

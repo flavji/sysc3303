@@ -9,7 +9,7 @@ import java.util.Objects;
  * @author Fareen Lavji
  * @author Harishan Amutheesan
  * 
- * @version 02.04.2023
+ * @version 02.27.2023
  */
 public class Elevator implements Runnable {
 	private Scheduler scheduler;
@@ -90,9 +90,14 @@ public class Elevator implements Runnable {
 		else if (Objects.isNull(fd)) {
 			canService = false;
 		}
+		else if (currentFloor == fd.getDestinationFloor())
+		{
+			canService = false;
+		}
 		return canService;
 		
 	}
+	
 	
 	/**
 	 * Used to run the Elevator threads.

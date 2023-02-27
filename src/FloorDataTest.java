@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
  * 
  * @author Fareen Lavji
  * 
- * @version 02.04.2023
+ * @version 02.27.2023
  */
 class FloorDataTest {
 
@@ -61,7 +61,7 @@ class FloorDataTest {
 	}
 	
 	/**
-	 * Test out of range handling for destinationFloor propery.
+	 * Test out of range handling for destinationFloor property.
 	 * @throws IOException
 	 */
 	@Test

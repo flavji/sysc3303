@@ -67,6 +67,5 @@ Credits:
 - Yash Kapoor 		(Worked on code, refactoring code, UML)
 - Faiaz Ahsan 		(Worked on code, rough draft of UML, and Sequence Diagram)
 - Zeid Alwash 		(Worked on code and rough draft of UML and README)
-- Fareen Lavji	  	(Worked on refactoring code, JUnit Tests, UML, setting up git repository,
-				initial deployment to GitHub, and proofreading README.txt) 
-- Harishan Amutheesan	(Worked on code and rough draft of UML)
+- Fareen Lavji	  	(Worked on refactoring code, JUnit Tests, and updating README) 
+- Harishan Amutheesan	(Worked on code,rough draft of UML, and State Machine Diagram)
