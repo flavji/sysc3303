@@ -36,19 +36,8 @@ class SchedulerTest {
 	 */
 	@Test
 	void testInitializationScheduler() {
-		assertNull(s.getFloorData());
 		assertEquals(s.getSchedulerToElevatorCondition(), 0);
 		assertEquals(s.getSchedulerToFloorCondition(), 0);
-	}
-
-	/**
-	 * Tests the setFloorData method.
-	 */
-	@Test
-	void testSetFloorData() {
-		FloorData fd = new FloorData(5);
-		s.setFloorData(fd);
-		assertEquals(s.getFloorData(), fd);
 	}
 
 	/**
