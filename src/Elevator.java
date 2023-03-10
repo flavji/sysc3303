@@ -1,3 +1,10 @@
+import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.SocketException;
+import java.net.UnknownHostException;
+import java.util.Arrays;
 import java.util.Objects;
 
 /**
@@ -27,19 +34,36 @@ public class Elevator implements Runnable {
 	private boolean canService;
 	// true if the request is serviceable, false otherwise
 	
+	private int portNumber;
+	
+	DatagramPacket sendPacket, receivePacket;
+	DatagramSocket socketScheduler, socketFloor;
+	
+	
 	
 	/**
 	 * Constructor for Elevator.
 	 * 
 	 * @param s	A Scheduler object that is used to communicate between the two clients (i.e., floor and elevator).
 	 */
-	public Elevator(Scheduler s) {
+	public Elevator(Scheduler s, int portNumber) {
 		this.scheduler = s;
 		this.elevatorToSchedulerCondition = 0;
 		this.upState = 0;
 		this.downState = 0;
 		this.idle = 1;
-		this.currentFloor = 2; // assume elevator starts at floor 2
+		this.currentFloor = 2; // assume elevator starts at floor 2 
+		this.portNumber = portNumber;
+		
+		  try {
+		         socketScheduler = new DatagramSocket(portNumber);
+		      } catch (SocketException se) {
+		         se.printStackTrace();
+		         System.exit(1);
+		      }
+		
+		
+		
 	}
 	
 	/**
@@ -62,7 +86,7 @@ public class Elevator implements Runnable {
 	 * @param fd	a FloorData object, the request that needs to be serviced
 	 * @return	a boolean, true if the request is serviceable, false otherwise
 	 */
-	public boolean executeRequest(FloorData fd) {
+	public synchronized boolean executeRequest(FloorData fd) {
 		if (fd.getInitialFloor() < fd.getDestinationFloor()) {
 			upState = 1;
 		}
@@ -98,6 +122,65 @@ public class Elevator implements Runnable {
 		
 	}
 	
+	public void sendReceive() {
+		while(true) {
+			byte schedulerData[] = new byte[100];
+			byte ackData[] = new byte[100];
+			String ack = "Data received";
+
+			
+			//form packet to receive data from scheduler
+			receivePacket = new DatagramPacket(schedulerData, schedulerData.length);
+			
+			
+			//receive Packet from scheduler
+			try {        
+		         System.out.println("Waiting..."); // so we know we're waiting
+		         socketScheduler.receive(receivePacket);
+		        
+		      } catch (IOException e) {
+		         System.out.print("IO Exception: likely:");
+		         System.out.println("Receive Socket Timed Out.\n" + e);
+		         e.printStackTrace();
+		         System.exit(1);
+		      }
+			
+			//print the received datagram from the scheduler
+		      System.out.println("Scheduler: Packet received from Floor:");
+		      System.out.println("From host: " + receivePacket.getAddress());
+		      System.out.println("Host port: " + receivePacket.getPort());
+		      System.out.println("Length: " + receivePacket.getLength());
+		      System.out.println("Containing: " + new String(receivePacket.getData(),0,receivePacket.getLength()));
+		      System.out.println("Containing in bytes: " + Arrays.toString(receivePacket.getData()));
+		      		      		      
+		      //form ackPacket to send to scheduler
+		      ackData = ack.getBytes();
+		      try {
+		      sendPacket = new DatagramPacket(ackData, ackData.length, InetAddress.getLocalHost(), receivePacket.getPort());
+		      }catch(UnknownHostException e) {
+			         e.printStackTrace();
+			         System.exit(1);
+			      }
+		      
+		      //send the Ack Packet to the scheduler
+		      try {
+		    	  socketScheduler.send(sendPacket);
+		      } catch (IOException e) {
+		         e.printStackTrace();
+		         System.exit(1);
+		      }
+		      
+			  //print the sent to the scheduler
+		      System.out.println("Scheduler: Packet received from Floor:");
+		      System.out.println("From host: " + sendPacket.getAddress());
+		      System.out.println("Host port: " + sendPacket.getPort());
+		      System.out.println("Length: " + sendPacket.getLength());
+		      System.out.println("Containing: " + new String(sendPacket.getData(),0,sendPacket.getLength()));
+		      System.out.println("Containing in bytes: " + Arrays.toString(sendPacket.getData()));
+		      			
+		}		
+	}
+	
 	
 	/**
 	 * Used to run the Elevator threads.
@@ -125,6 +208,7 @@ public class Elevator implements Runnable {
     	        		else {
     	        			// Otherwise, output a message that the request cannot be serviced at the moment
     	        			System.out.println("Request at time: " + item.getTime() + " cannot be processed at the moment.");
+    	        			
     	        		}
     	        	}
         		}

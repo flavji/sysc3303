@@ -1,5 +1,11 @@
+import java.util.Arrays;
 import java.util.Date;
 import java.io.*;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.SocketException;
+import java.net.UnknownHostException;
 import java.text.*;
 
 /**
@@ -16,6 +22,9 @@ import java.text.*;
 public class Floor implements Runnable {
 	private Scheduler scheduler;
 	private String floorRequests;
+	int counter;
+	DatagramPacket sendPacket, receivePacket, receiveAckPacket;
+	DatagramSocket Socket, socket2;
 	
 	/**
 	 * Constructor for Floor that initializes a scheduler and floor data.
@@ -25,6 +34,21 @@ public class Floor implements Runnable {
 	public Floor(Scheduler s, String floorRequests) {
 		this.scheduler = s;
 		this.floorRequests = floorRequests;
+		this.counter = 0;
+		
+		 try {
+	         Socket = new DatagramSocket();
+	      } catch (SocketException se) {
+	         se.printStackTrace();
+	         System.exit(1);
+	      }
+		 
+		 try {
+	         socket2 = new DatagramSocket(26);
+	      } catch (SocketException se) {
+	         se.printStackTrace();
+	         System.exit(1);
+	      }
 	}
 	
 	/**
@@ -53,6 +77,10 @@ public class Floor implements Runnable {
 			    		Integer.parseInt(elevatorData[1]),
 			    		elevatorData[2],
 			    		Integer.parseInt(elevatorData[3]));
+			    
+			    //counter gets updated for every request
+			    counter++;
+			    
 		    }
 	    
 		    br.close();
@@ -61,6 +89,94 @@ public class Floor implements Runnable {
 		catch (ParseException e) {
 			e.printStackTrace();
 		}
+	}
+	
+	public void sendReceive() {
+		for(int i = 0; i < counter; i++) {
+			byte floorData[] = new byte[100];
+			byte floorReply[] = new byte[100];
+			
+		     //form packet to send to scheduler
+		      //floorData = method(); call an internal method to form the array of bytes
+		      try {
+		      sendPacket = new DatagramPacket(floorData, floorData.length, InetAddress.getLocalHost(), 23);
+		      }catch(UnknownHostException e) {
+			         e.printStackTrace();
+			         System.exit(1);
+			      }
+		      
+		      
+		      //send the packet to the scheduler
+		      try {
+		    	  Socket.send(sendPacket);
+		      } catch (IOException e) {
+		         e.printStackTrace();
+		         System.exit(1);
+		      }
+		      
+		      //print the sent packet
+		      System.out.println("Floor: Data Request Packet sent to scheduler:");
+		      System.out.println("From host: " + sendPacket.getAddress());
+		      System.out.println("Host port: " + sendPacket.getPort());
+		      System.out.println("Length: " + sendPacket.getLength());
+		      System.out.println("Containing: " + new String(sendPacket.getData(),0,sendPacket.getLength()));
+		      System.out.println("Containing in bytes: " + Arrays.toString(sendPacket.getData()));
+		      
+		      
+		      //form packet to receive reply from scheduler
+		      receivePacket = new DatagramPacket(floorReply, floorReply.length);
+		      
+		      //receive the reply packet from the scheduler
+		      try {        
+		         System.out.println("Waiting..."); // so we know we're waiting
+		         Socket.receive(receivePacket);
+		        
+		      } catch (IOException e) {
+		         System.out.print("IO Exception: likely:");
+		         System.out.println("Receive Socket Timed Out.\n" + e);
+		         e.printStackTrace();
+		         System.exit(1);
+		      }
+		      
+		      //print the reply packet received from the scheduler
+		      System.out.println("Floor: Reply Packet received from scheduler:");
+		      System.out.println("From host: " + receivePacket.getAddress());
+		      System.out.println("Host port: " + receivePacket.getPort());
+		      System.out.println("Length: " + receivePacket.getLength());
+		      System.out.println("Containing: " + new String(receivePacket.getData(),0,receivePacket.getLength()));
+		      System.out.println("Containing in bytes: " + Arrays.toString(receivePacket.getData()));
+		      
+		      
+		      //form packet to receive Ack packet
+				byte floorAck[] = new byte[100];
+			    receiveAckPacket = new DatagramPacket(floorAck, floorAck.length);
+		      
+		      
+		      //receive the Ack packet from the scheduler
+		      try {        
+		         System.out.println("Waiting..."); // so we know we're waiting
+		         Socket.receive(receiveAckPacket);
+		        
+		      } catch (IOException e) {
+		         System.out.print("IO Exception: likely:");
+		         System.out.println("Receive Socket Timed Out.\n" + e);
+		         e.printStackTrace();
+		         System.exit(1);
+		      }
+		      
+		      //print the reply packet received from the scheduler
+		      System.out.println("Floor: Reply Packet received from scheduler:");
+		      System.out.println("From host: " + receiveAckPacket.getAddress());
+		      System.out.println("Host port: " + receiveAckPacket.getPort());
+		      System.out.println("Length: " + receiveAckPacket.getLength());
+		      System.out.println("Containing: " + new String(receiveAckPacket.getData(),0,receiveAckPacket.getLength()));
+		      System.out.println("Containing in bytes: " + Arrays.toString(receiveAckPacket.getData()));
+		      		      		      		      		      		      	
+		}
+		//close the sockets once done
+		Socket.close();
+		
+		
 	}
 
 	/**
@@ -125,6 +241,8 @@ public class Floor implements Runnable {
 		fd.setInitialFloor(iFloor);
 		fd.setFloorButton(direction.toLowerCase()); // Up & Down
 		fd.setDestinationFloor(dFloor);
+		
+		fd.toString();
 		
 		// adding all the requests to the queue that are in the CSV file
 	    scheduler.addRequests(fd);

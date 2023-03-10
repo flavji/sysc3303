@@ -17,7 +17,7 @@ import org.junit.jupiter.api.Test;
 class ElevatorTest {
 
 	Scheduler s = new Scheduler();
-	Elevator e = new Elevator(s);
+	Elevator e = new Elevator(s, 23);
 	FloorData fd = new FloorData(5);
 	
 	/**

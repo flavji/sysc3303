@@ -21,12 +21,13 @@ public class Main {
 		Scheduler s = new Scheduler();
 		
 		floor = new Thread(new Floor(s, "./floorRequests.csv"), "Floor");
-		elevator = new Thread(new Elevator(s), "Elevator");
+//		elevator = new Thread(new Elevator(s), "Elevator");
 		scheduler = new Thread(s, "Scheduler");
 		
 		floor.start();
 		scheduler.start();
-		elevator.start();
+//		elevator.start();
+		
 	}
 }
 
