@@ -1,5 +1,5 @@
-Author of this README file: Yash Kapoor 
-Email: Yash.Kapoor@Carleton.ca
+Author of this README file: Zeid Alwash 
+Email: ZeidAlwash@cmail.carleton.ca
 
 Description:
 ------------
@@ -7,14 +7,7 @@ There are three subsystems in this project: Floor, Elevator, and Scheduler.
 The scheduler is used as a communication channel between the clients (i.e., floor and elevator).
 The data in the CSV file gets passed from the floor -> scheduler -> elevator -> scheduler -> floor. 
 Specifically, the Floor subsystem reads the CSV file and sends the values to the scheduler.
-The scheduler stores those values, so the elevator can use them. The 
-execution of this program is simple. The Floor subsystem executes first and prints
-"Starting at Floor". Then, The Floor subsystem sends the data that it reads from the
-CSV file to the scheduler class. The scheduler notifies the elevator, which then begins
-executing and prints out "Elevator Success", along with the data in the CSV file. Then, 
-the elevator sends a request back to the scheduler that it is done. Hence, the scheduler
-sends a request back to the floor, telling it to start executing again. Once the floor starts
-executing again, it prints out "Ending at Floor", along with the data in the CSV file. 
+The scheduler stores those values in a queue AllFloorRequests, the elevator determines which requests are serviceable based on the first request and notifies the scheduler to store those requests in another queue serviceableRequests. The elevator then iterates through both queues until they're empty. The  execution of this program is simple. The Floor subsystem executes first and prints "Starting at Floor". Then, The Floor subsystem sends the data that it reads from the CSV file to the scheduler class. The scheduler notifies the elevator, which then begins executing and prints out "Elevator Success", along with the data in the CSV file. Then, the elevator sends a request back to the scheduler that it is done. Hence, the scheduler sends a request back to the floor, telling it to start executing again. Once the floor starts executing again, it prints out "Ending at Floor", along with the data in the CSV file. 
 
 This program is made up of 5 files:
 
@@ -24,7 +17,7 @@ This program is made up of 5 files:
 			the scheduler. Also, it is responsible for reading the CSV file and setting the FloorData
 			Object, which notifies the scheduler to send a request to the elevator.
 	Elevator.java: A class that consists of the elevator thread that will execute after the scheduler
-			   sends the request.
+			   sends the requests.
 	Scheduler.java: A class that consists of the scheduler thread (i.e., server) that is used to as a
 			    a communication channel between the clients (i.e., floor and elevator).
 	FloorData.java: A class that stores the data defined in the CSV file (i.e., time, initial floor
@@ -44,7 +37,7 @@ https://www.eclipse.org/downloads/packages/installer
 
 Usage:
 -------
-Step 1: Save A3G8_milestone_1.zip to a folder of your choice.
+Step 1: Save A3G8_milestone_2.zip to a folder of your choice.
 
 Step 2: Open Eclipse and ensure the "Java Browsing" perspective is selected
 	  by going to Window > Perspective > Open Perspective > Java Browsing.
@@ -53,7 +46,7 @@ Step 3: Click on File > Import from the Eclipse main menu.
 
 Step 4: Expand General, click on "Existing Projects into Workspace", and click Next.
 
-Step 5: Ensure that Select Archive File is checked and browse for A3G8_milestone_1.zip.
+Step 5: Ensure that Select Archive File is checked and browse for A3G8_milestone_2.zip.
 
 Step 6: Click Finish. 
 
@@ -66,15 +59,14 @@ Step 9: Right click on the project package, click on "Run as", then select
 	  see text being printed to the console that indicates whether the floor 
 	  or elevator is running. 
 
-To find the sequence and UML diagram that we constructed for this assignment,
-extract all files from A3G8_milestone_1.zip. there should be elevatorSimulation_UML.png
-and elevatorSimulation_sequenceDiagram.png in the root folder. 
+To find the sequence, UML diagram and State machine diagrams that we constructed for this assignment,
+extract all files from A3G8_milestone_2.zip. there should be elevatorSimulation_UML.png, elevatorSimulation_sequenceDiagram.png, Elevator_State_Machine_Diagram and Scheduler_State_Machine_Diagram in the root folder. 
 
 Credits:
 -------
-- Yash Kapoor 		(Worked on code, refactoring code, UML, and README)
+- Yash Kapoor 		(Worked on code, refactoring code, UML)
 - Faiaz Ahsan 		(Worked on code, rough draft of UML, and Sequence Diagram)
-- Zeid Alwash 		(Worked on code and rough draft of UML)
+- Zeid Alwash 		(Worked on code and rough draft of UML and README)
 - Fareen Lavji	  	(Worked on refactoring code, JUnit Tests, UML, setting up git repository,
 				initial deployment to GitHub, and proofreading README.txt) 
-- Harishan Amutheesan	(Worked on code and rough draft of UML)
+- Harishan Amutheesan	(Worked on code, rough draft of UML, State Machine Diagrams)

@@ -108,4 +108,6 @@ public class FloorData {
 	public void setFloorButton(String floorButton)  {
 		this.floorButton = floorButton;
 	}
+	
+
 }
