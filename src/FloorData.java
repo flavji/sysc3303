@@ -10,7 +10,7 @@ import java.util.Date;
  * @author Fareen Lavji
  * @author Harishan Amutheesan
  * 
- * @version 02.04.2023
+ * @version 03.10.2023
  */
 public class FloorData {
 	
@@ -108,6 +108,4 @@ public class FloorData {
 	public void setFloorButton(String floorButton)  {
 		this.floorButton = floorButton;
 	}
-	
-
 }

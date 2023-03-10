@@ -7,7 +7,7 @@
  * @author Fareen Lavji
  * @author Harishan Amutheesan
  * 
- * @version 02.04.2023
+ * @version 03.10.2023
  */
 public class Main {
 	
@@ -20,7 +20,7 @@ public class Main {
 		Thread floor, elevator, scheduler;
 		Scheduler s = new Scheduler();
 		
-		floor = new Thread(new Floor(s, "./floorRequests.csv"), "Floor");
+		floor = new Thread(new Floor(s, 10, "./floorRequests.csv"), "Floor"); //setting default floors to 10
 		elevator = new Thread(new Elevator(s), "Elevator");
 		scheduler = new Thread(s, "Scheduler");
 		
