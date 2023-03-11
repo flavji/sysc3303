@@ -4,12 +4,18 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.PriorityQueue;
 import java.util.Queue;
+
+//import udpIP.Client;
 
 /**
  * Scheduler Class that consists of a thread that is used as a communication channel between the clients (i.e., floor and elevator).
@@ -34,7 +40,7 @@ public class Scheduler implements Runnable {
 	private Queue<FloorData> serviceableFloorRequests;    // a queue of serviceable requests at the moment
 	private boolean floorRequestReceived;
 	private int[] portNumbers = new int[5];
-	private String elevatorAck;
+	private String elevatorAck = "";
 	
 	DatagramPacket receivePacketFloor, receivePacketElevator, sendPacketFloor, sendPacketElevator, sendAckPacketFloor;
 	DatagramSocket sendAndReceiveSocket, receiveSocket, floorSocket, elevatorSocket;
@@ -63,18 +69,19 @@ public class Scheduler implements Runnable {
 		this.floorRequestReceived = false;
 		
 		//initialize ports, assumption: 2 elevators by default
-		portNumbers[0] = 28;
+		portNumbers[0] = 50;
 		portNumbers[1] = 29;
 
-		elevators.add(new Elevator(this, portNumbers[0])); //adding one default elevator to elevator list
-		elevators.add(new Elevator(this, portNumbers[1]));
+		elevators.add(new Elevator( portNumbers[0])); //adding one default elevator to elevator list
+		elevators.add(new Elevator( portNumbers[1]));
 		
 		
 
 		
 		  try {
-		         sendAndReceiveSocket = new DatagramSocket();
+
 		         floorSocket = new DatagramSocket(23);
+		         elevatorSocket = new DatagramSocket();
 
 		      } catch (SocketException se) {
 		         se.printStackTrace();
@@ -128,6 +135,7 @@ public class Scheduler implements Runnable {
 	 * @param fd	a FloorData Object that gets added to the queue
 	 */
 	public void addRequests(FloorData fd) {
+		
 		allFloorRequests.add(fd);
 	}
 	
@@ -177,7 +185,39 @@ public class Scheduler implements Runnable {
 		schedulerToFloorCondition = 0;	
 	}
 	
-	 public void sendReceiveFloor() {
+	private FloorData parsePacket(String arr) {
+		
+		String data = arr;
+		System.out.println(data);
+		
+		String[] arrValues = data.split(",");
+		FloorData fd = new FloorData(10);
+		
+		String dateTimeString = arrValues[0];
+		String timeString = dateTimeString.substring(11, 19);
+
+		
+
+	
+
+		try {
+			String start_date = timeString;
+			DateFormat formatter = new SimpleDateFormat("hh:mm:ss");
+			Date date;
+			 
+			date = (Date) formatter.parse(start_date);
+			 fd.setTime(date);
+			 fd.setInitialFloor(Integer.parseInt(arrValues[1]));
+			 fd.setFloorButton(arrValues[2]);
+			 fd.setDestinationFloor(Integer.parseInt(arrValues[3]));
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		 	 
+		return fd;
+	}
+	
+	 public synchronized void sendReceiveFloor() {
 		   while(true) {
 			   
 			   byte floorData[] = new byte[100];
@@ -191,7 +231,7 @@ public class Scheduler implements Runnable {
 			   			   
 				// Block until a datagram packet is received from elevator
 			      try {        
-			         System.out.println("Waiting..."); // so we know we're waiting
+			         System.out.println(" Floor method Waiting..."); // so we know we're waiting
 			         floorSocket.receive(receivePacketFloor);
 			        
 			      } catch (IOException e) {
@@ -203,6 +243,10 @@ public class Scheduler implements Runnable {
 			      
 			      //set boolean to true once floor request is received from floor
 			      floorRequestReceived = true;
+			      
+			      FloorData fdx = parsePacket(new String(receivePacketFloor.getData(),0,receivePacketFloor.getLength()));
+			      
+			      addRequests(fdx);
 			      
 			      
 			      
@@ -272,8 +316,9 @@ public class Scheduler implements Runnable {
 	   }
 	 
 	 
-	 public void sendReceiveElevator() {
-		 int portNumber = 0;
+	 public synchronized void sendReceiveElevator() {
+		 int portNumber = 69;
+		 
 		   while(true) {
 			   
 			   byte elevatorData[] = new byte[100];
@@ -317,7 +362,7 @@ public class Scheduler implements Runnable {
 			      
 				// Block until a datagram packet is received from elevator
 			      try {        
-			         System.out.println("Waiting..."); // so we know we're waiting
+			         System.out.println(" Elevator method Waiting..."); // so we know we're waiting
 			         elevatorSocket.receive(receivePacketElevator);
 			        
 			      } catch (IOException e) {
@@ -351,63 +396,82 @@ public class Scheduler implements Runnable {
 	@Override
 	public void run() {
 		
-		
-		
-		
-        boolean elevatorNotExecuted = true;
-        
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {}
-        
-        while(true) {
-        	System.out.println("SERVICEABLE REQUESTS QUEUE: " + getServiceableRequests());
-        	System.out.println("ALL REQUESTS QUEUE: " + getAllRequests());
-        	
-        	while(!getAllRequests().isEmpty() || !getServiceableRequests().isEmpty()) {
-	        	if (elevatorNotExecuted && getSchedulerToFloorCondition() == 0) {
-	        		// tell the elevator to start executing
-	                try {
-	                    Thread.sleep(1000);
-	                } catch (InterruptedException e) {}
-	        		idle = 0;
-	                System.out.println("\nScheduler: Request received from floor");	                
-	                System.out.println("Scheduler State = processing Requests from floor ");
-	                
-	                notifySchedulerToElevator();
-	                    
-	                elevatorNotExecuted = false;
-	                System.out.println("Scheduler: Request sent to elevator\n");     
-	                
-	            }
-	            else if (getSchedulerToElevatorCondition() == 0 && idle == 0) {
-	            	// tell the floor to start executing
-	            	System.out.println("\nScheduler State = Processing Requests from elevator ");
-	                System.out.println("Scheduler: Request received from elevator");
-	
-	                System.out.println("Scheduler: Request sent to floor");
-	               
-	                notifySchedulerToFloor();
-	                
-	                elevatorNotExecuted = true;
-	          
-	                break;
-	            }
-	            else {
-	                try {
-	                    Thread.sleep(1000);
-	                } catch (InterruptedException e) {}
-	            }
-	        }
-    		idle = 1;
-    		if (idle == 1 && getAllRequests().isEmpty() && getServiceableRequests().isEmpty()) {
-    			// idle when all the requests in the allFloorRequests have been serviced
-    			// and both queues are empty
-    			System.out.println("Scheduler State = Idle");
-    			break;
-    		}
-    		
+		if(Thread.currentThread().getName().equals("Floor")) {
+			System.out.println("Floor method runs");
+			sendReceiveFloor();
+			
+        } else if (Thread.currentThread().getName().equals("Elevator")){
+        	System.out.println("Elevator method runs");
+        	sendReceiveElevator();
         }
+		
+		
+//        boolean elevatorNotExecuted = true;
+//        
+//        try {
+//            Thread.sleep(1000);
+//        } catch (InterruptedException e) {}
+//        
+//        while(true) {
+//        	System.out.println("SERVICEABLE REQUESTS QUEUE: " + getServiceableRequests());
+//        	System.out.println("ALL REQUESTS QUEUE: " + getAllRequests());
+//        	
+//        	while(!getAllRequests().isEmpty() || !getServiceableRequests().isEmpty()) {
+//	        	if (elevatorNotExecuted && getSchedulerToFloorCondition() == 0) {
+//	        		// tell the elevator to start executing
+//	                try {
+//	                    Thread.sleep(1000);
+//	                } catch (InterruptedException e) {}
+//	        		idle = 0;
+//	                System.out.println("\nScheduler: Request received from floor");	                
+//	                System.out.println("Scheduler State = processing Requests from floor ");
+//	                
+//	                notifySchedulerToElevator();
+//	                    
+//	                elevatorNotExecuted = false;
+//	                System.out.println("Scheduler: Request sent to elevator\n");     
+//	                
+//	            }
+//	            else if (getSchedulerToElevatorCondition() == 0 && idle == 0) {
+//	            	// tell the floor to start executing
+//	            	System.out.println("\nScheduler State = Processing Requests from elevator ");
+//	                System.out.println("Scheduler: Request received from elevator");
+//	
+//	                System.out.println("Scheduler: Request sent to floor");
+//	               
+//	                notifySchedulerToFloor();
+//	                
+//	                elevatorNotExecuted = true;
+//	          
+//	                break;
+//	            }
+//	            else {
+//	                try {
+//	                    Thread.sleep(1000);
+//	                } catch (InterruptedException e) {}
+//	            }
+//	        }
+//    		idle = 1;
+//    		if (idle == 1 && getAllRequests().isEmpty() && getServiceableRequests().isEmpty()) {
+//    			// idle when all the requests in the allFloorRequests have been serviced
+//    			// and both queues are empty
+//    			System.out.println("Scheduler State = Idle");
+//    			break;
+//    		}
+//    		
+//        }
         
     }
+	public static void main(String args[])
+	   {
+		Scheduler s = new Scheduler();
+	    Thread t1 = new Thread(s, "Floor");
+	    Thread t2 = new Thread(s, "Elevator");
+	    
+	    
+	    t1.start();
+	    t2.start();
+	    
+	   }
+	
 }

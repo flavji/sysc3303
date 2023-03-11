@@ -106,10 +106,8 @@ public class FloorData {
 	 * @throws IOException Throws exception if the floor button is incorrect.
 	 */
 	public void setFloorButton(String floorButton)  throws IOException {
-		if (floorButton == "up" || floorButton == "down") {
+
 			this.floorButton = floorButton;
-		}
-		else throw new IOException("Unrecognized floor button");
 	}
 	
 

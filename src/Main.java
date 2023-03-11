@@ -17,16 +17,16 @@ public class Main {
 	 * @param args
 	 */
 	public static void main(String[] args) {
-		Thread floor, elevator, scheduler;
-		Scheduler s = new Scheduler();
-		
-		floor = new Thread(new Floor(s, "./floorRequests.csv"), "Floor");
-//		elevator = new Thread(new Elevator(s), "Elevator");
-		scheduler = new Thread(s, "Scheduler");
-		
-		floor.start();
-		scheduler.start();
-//		elevator.start();
+//		Thread floor, elevator, scheduler;
+//		Scheduler s = new Scheduler();
+//		
+//		floor = new Thread(new Floor(s, "./floorRequests.csv"), "Floor");
+////		elevator = new Thread(new Elevator(s), "Elevator");
+//		scheduler = new Thread(s, "Scheduler");
+//		
+//		floor.start();
+//		scheduler.start();
+////		elevator.start();
 		
 	}
 }

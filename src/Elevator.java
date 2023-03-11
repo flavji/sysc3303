@@ -5,6 +5,9 @@ import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedList;
 import java.util.Objects;
 
 /**
@@ -23,7 +26,7 @@ public class Elevator implements Runnable {
 	private int elevatorToSchedulerCondition;
 	
 	
-	private int currentFloor;	
+	//private int currentFloor;	
 	// the floor the elevator needs to go to, so it can take the request
 	// the initial floor of the request
 	
@@ -33,6 +36,11 @@ public class Elevator implements Runnable {
 	
 	private boolean canService;
 	// true if the request is serviceable, false otherwise
+	
+	private int direction;
+	private static long travelTime = 1000; // average time elevator takes to move 1 floor
+	Collection<Integer> requestsQueue;
+	private Integer currentFloor;
 	
 	private int portNumber;
 	
@@ -46,24 +54,46 @@ public class Elevator implements Runnable {
 	 * 
 	 * @param s	A Scheduler object that is used to communicate between the two clients (i.e., floor and elevator).
 	 */
-	public Elevator(Scheduler s, int portNumber) {
-		this.scheduler = s;
+	public Elevator( int portNumber) {
 		this.elevatorToSchedulerCondition = 0;
 		this.upState = 0;
 		this.downState = 0;
 		this.idle = 1;
 		this.currentFloor = 2; // assume elevator starts at floor 2 
 		this.portNumber = portNumber;
+		this.requestsQueue = Collections.synchronizedCollection(new LinkedList<>());
+		
 		
 		  try {
 		         socketScheduler = new DatagramSocket(portNumber);
 		      } catch (SocketException se) {
 		         se.printStackTrace();
 		         System.exit(1);
-		      }
-		
-		
-		
+		      }						
+	}
+	
+	/**
+	 * Returns the direction of the elevator.
+	 * 
+	 * @return Up if moving up, down if moving down, stationary if not moving.
+	 */
+	public int getDirection() { return this.direction; }
+	
+	/**
+	 * Returns the size of the elevators queue.
+	 * 
+	 * @return An integer value with the elevator's queue size.
+	 */
+	public int getQueueSize() { return requestsQueue.size(); }
+	
+	/**
+	 * Adds request to queue based on most efficient position.
+	 * 
+	 * @param destinationFloor The destination floor of the given request.
+	 */
+	public void addRequest(int destinationFloor, int position) {
+		requestsQueue.add(destinationFloor);// need to implement the position as well
+
 	}
 	
 	/**
@@ -82,43 +112,33 @@ public class Elevator implements Runnable {
 	}
 
 	/**
-	 * Checks whether the request is serviceable at the moment
-	 * @param fd	a FloorData object, the request that needs to be serviced
-	 * @return	a boolean, true if the request is serviceable, false otherwise
+	 * Executes a request based on the destination floor. Switches the state to active and calculates how long the
+	 * elevator would take to reach the destination floor. If there are no more requests in the queue, state stays
+	 * active.
+	 * 
+	 * @param destinationFloor The destination floor that the elevator needs to go to.
 	 */
-	public synchronized boolean executeRequest(FloorData fd) {
-		if (fd.getInitialFloor() < fd.getDestinationFloor()) {
-			upState = 1;
-		}
-		else {
-			downState = 1;
-		}
+	private void executeRequest(Integer destinationFloor) {
 		
-		if(upState == 1 && currentFloor > fd.getDestinationFloor()) {
-			canService = false;
-			
-		} else if(upState == 1 && currentFloor < fd.getDestinationFloor()) {
-			downState = 0;
-			currentFloor = fd.getInitialFloor();
-			canService = true;
+		// switch the state of the elevator
+		int comparisor = destinationFloor.compareTo(this.currentFloor);
+		
+		if (comparisor < 0) { this.direction = 0; }
+		else if (comparisor > 0) {this.direction = 1; }
+		else { this.direction = 2; }
+		
+		// processing request
+		try {
+			Thread.sleep(Elevator.travelTime * (destinationFloor - this.currentFloor));
 		}
-		else if(downState == 1 && currentFloor < fd.getDestinationFloor()) {
-			canService = false;	
-		}
-		else if(downState == 1 && currentFloor > fd.getDestinationFloor()) {
-			upState = 0;
-			currentFloor = fd.getInitialFloor();
-			canService = true;
-			
-		}
-		else if (Objects.isNull(fd)) {
-			canService = false;
-		}
-		else if (currentFloor == fd.getDestinationFloor())
-		{
-			canService = false;
-		}
-		return canService;
+		catch (InterruptedException e) {}
+		
+		// switch elevator back to stationary if there are no more requests
+		if (!this.requestsQueue.isEmpty()) { this.direction = 2; }
+		
+		this.currentFloor = destinationFloor; // update current floor
+		
+		//0 for up, 1 or down and 2 for stationnary
 		
 	}
 	
@@ -145,6 +165,7 @@ public class Elevator implements Runnable {
 		         System.exit(1);
 		      }
 			
+			
 			//print the received datagram from the scheduler
 		      System.out.println("Scheduler: Packet received from Floor:");
 		      System.out.println("From host: " + receivePacket.getAddress());
@@ -152,6 +173,15 @@ public class Elevator implements Runnable {
 		      System.out.println("Length: " + receivePacket.getLength());
 		      System.out.println("Containing: " + new String(receivePacket.getData(),0,receivePacket.getLength()));
 		      System.out.println("Containing in bytes: " + Arrays.toString(receivePacket.getData()));
+			
+			//process the request, call the internal method
+			executeRequest( Integer.parseInt(Arrays.toString(receivePacket.getData())));
+			
+			//Print request has been serviced
+			System.out.println("This Request has been fulfilled!");
+			
+			
+
 		      		      		      
 		      //form ackPacket to send to scheduler
 		      ackData = ack.getBytes();
@@ -187,74 +217,85 @@ public class Elevator implements Runnable {
 	 */
 	@Override
     public void run() { 
-        while(true) {
-        	if (scheduler.getSchedulerToElevatorCondition() == 1) {
-        		if(scheduler.getServiceableRequests().isEmpty() && !scheduler.getAllRequests().isEmpty()) {
-        			// as long as the serviceableRequests and allFloorRequests queue are not empty
-        			// keep checking whether the request is serviceable or not
-        			currentFloor = ((FloorData) scheduler.getAllRequests().element()).getInitialFloor();
-    	        	for(FloorData item: scheduler.getAllRequests()) {
-    	        		// if request is serviceable, add the FloorData object to the serviceableRequests queue
-    	        		if(executeRequest(item))  
-    	        		{
-    	        			    scheduler.addServiceableRequests(item);
-    	        			    
-    	        			    
-    	        			    // setting these to 0 since our elevator is stationary
-    	        			    // since it is neither going up nor down - it is not servicing anything yet
-    	        			    upState = 0;
-    	        			    downState = 0;
-    	        		}
-    	        		else {
-    	        			// Otherwise, output a message that the request cannot be serviced at the moment
-    	        			System.out.println("Request at time: " + item.getTime() + " cannot be processed at the moment.");
-    	        			
-    	        		}
-    	        	}
-        		}
-	        	while(!scheduler.getServiceableRequests().isEmpty()) {
-	        		// Go through the serviceableRequests queue
-	        		// until all requests have been serviced by the elevator
-	        		
-   	            	System.out.println("\nElevator: processing request");
-   	                System.out.println("\n\tElevator Received Request: " +
-   	                		"\n\t\tInitial Floor: " + ((FloorData) scheduler.getServiceableRequests().element()).getInitialFloor() +
-	                		" Destination Floor: " + ((FloorData) scheduler.getServiceableRequests().element()).getDestinationFloor() +
-	                		" Floor Button: " + ((FloorData)scheduler.getServiceableRequests().element()).getFloorButton() +
-	                		" Time: " + ((FloorData)scheduler.getServiceableRequests().element()).getTime() + "\n");
-   	                
-   	          
-   	                // calling this method to update the states
-  	                executeRequest(scheduler.getServiceableRequests().element());
-   	 			    System.out.println("Elevator upState = " + upState);
-   	 			    System.out.println("Elevator downState = " + downState);
-   	                System.out.println("Elevator: request was processed. Elevator is Stationary.");
-   	               
-   	                upState = 0;
-   	                downState = 0;
-   	                // Elevator is idle only when it executes ALL the requests 
-   	                // Therefore, we are setting idle equals 0 since the elevator is stationary, but not idle yet
-   	                idle = 0;
-   	                
-   	                notifyElevatorToScheduler();    // going back to scheduler from elevator, so scheduler can send the data to the floor
-   	                break;    	
-       	         }
-        	} else {
-	    		idle = 1;
-	    		if (idle == 1 && scheduler.getAllRequests().isEmpty() && scheduler.getServiceableRequests().isEmpty()) {
-	    			// idle when all the requests in the allFloorRequests have been serviced
-	    			// and both queues are empty
-	    			System.out.println("Elevator State = Idle");
-	    			
-	    			// setting idle equal to 0 to break out of the while loop and stop the elevator from executing
-	    			idle = 0;
-	    		}
-        		try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException e) {}
-        	}
-        }
+		
+		sendReceive();
+		
+//        while(true) {
+//        	if (scheduler.getSchedulerToElevatorCondition() == 1) {
+//        		if(scheduler.getServiceableRequests().isEmpty() && !scheduler.getAllRequests().isEmpty()) {
+//        			// as long as the serviceableRequests and allFloorRequests queue are not empty
+//        			// keep checking whether the request is serviceable or not
+//        			currentFloor = ((FloorData) scheduler.getAllRequests().element()).getInitialFloor();
+//    	        	for(FloorData item: scheduler.getAllRequests()) {
+//    	        		// if request is serviceable, add the FloorData object to the serviceableRequests queue
+//    	        		if(executeRequest(item))  
+//    	        		{
+//    	        			    scheduler.addServiceableRequests(item);
+//    	        			    
+//    	        			    
+//    	        			    // setting these to 0 since our elevator is stationary
+//    	        			    // since it is neither going up nor down - it is not servicing anything yet
+//    	        			    upState = 0;
+//    	        			    downState = 0;
+//    	        		}
+//    	        		else {
+//    	        			// Otherwise, output a message that the request cannot be serviced at the moment
+//    	        			System.out.println("Request at time: " + item.getTime() + " cannot be processed at the moment.");
+//    	        			
+//    	        		}
+//    	        	}
+//        		}
+//	        	while(!scheduler.getServiceableRequests().isEmpty()) {
+//	        		// Go through the serviceableRequests queue
+//	        		// until all requests have been serviced by the elevator
+//	        		
+//   	            	System.out.println("\nElevator: processing request");
+//   	                System.out.println("\n\tElevator Received Request: " +
+//   	                		"\n\t\tInitial Floor: " + ((FloorData) scheduler.getServiceableRequests().element()).getInitialFloor() +
+//	                		" Destination Floor: " + ((FloorData) scheduler.getServiceableRequests().element()).getDestinationFloor() +
+//	                		" Floor Button: " + ((FloorData)scheduler.getServiceableRequests().element()).getFloorButton() +
+//	                		" Time: " + ((FloorData)scheduler.getServiceableRequests().element()).getTime() + "\n");
+//   	                
+//   	          
+//   	                // calling this method to update the states
+//  	                executeRequest(scheduler.getServiceableRequests().element());
+//   	 			    System.out.println("Elevator upState = " + upState);
+//   	 			    System.out.println("Elevator downState = " + downState);
+//   	                System.out.println("Elevator: request was processed. Elevator is Stationary.");
+//   	               
+//   	                upState = 0;
+//   	                downState = 0;
+//   	                // Elevator is idle only when it executes ALL the requests 
+//   	                // Therefore, we are setting idle equals 0 since the elevator is stationary, but not idle yet
+//   	                idle = 0;
+//   	                
+//   	                notifyElevatorToScheduler();    // going back to scheduler from elevator, so scheduler can send the data to the floor
+//   	                break;    	
+//       	         }
+//        	} else {
+//	    		idle = 1;
+//	    		if (idle == 1 && scheduler.getAllRequests().isEmpty() && scheduler.getServiceableRequests().isEmpty()) {
+//	    			// idle when all the requests in the allFloorRequests have been serviced
+//	    			// and both queues are empty
+//	    			System.out.println("Elevator State = Idle");
+//	    			
+//	    			// setting idle equal to 0 to break out of the while loop and stop the elevator from executing
+//	    			idle = 0;
+//	    		}
+//        		try {
+//                    Thread.sleep(1000);
+//                } catch (InterruptedException e) {}
+//        	}
+//        }
 	}
+	
+	public static void main(String args[])
+	   {
+		Elevator e = new Elevator(69);		
+	    Thread t1 = new Thread(e);	    	    
+	    t1.start();
+	    
+	   }
 }
         		
 

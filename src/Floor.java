@@ -1,5 +1,8 @@
 import java.util.Arrays;
 import java.util.Date;
+
+//import udpIP.Client;
+
 import java.io.*;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -22,6 +25,7 @@ import java.text.*;
 public class Floor implements Runnable {
 	private Scheduler scheduler;
 	private String floorRequests;
+	private FloorData fdPacket;
 	int counter;
 	DatagramPacket sendPacket, receivePacket, receiveAckPacket;
 	DatagramSocket Socket, socket2;
@@ -31,8 +35,7 @@ public class Floor implements Runnable {
 	 * 
 	 * @param s	A Scheduler Object, the server that is used to communicate between the two clients (i.e., floor and elevator).
 	 */
-	public Floor(Scheduler s, String floorRequests) {
-		this.scheduler = s;
+	public Floor(String floorRequests) {
 		this.floorRequests = floorRequests;
 		this.counter = 0;
 		
@@ -92,12 +95,27 @@ public class Floor implements Runnable {
 	}
 	
 	public void sendReceive() {
+		 System.out.println("We are sending");
+		 
 		for(int i = 0; i < counter; i++) {
 			byte floorData[] = new byte[100];
 			byte floorReply[] = new byte[100];
 			
+			
 		     //form packet to send to scheduler
 		      //floorData = method(); call an internal method to form the array of bytes
+			
+			
+			// wrapping floorData to String
+	        String fd = fdPacket.getTime().toString() + ","
+	        		+ fdPacket.getInitialFloor() + ","
+	        		+ fdPacket.getFloorButton() + ","
+	        		+ fdPacket.getDestinationFloor();
+	        
+	        // convert string to bytes for packet
+	        floorData = fd.getBytes();
+	        
+	        
 		      try {
 		      sendPacket = new DatagramPacket(floorData, floorData.length, InetAddress.getLocalHost(), 23);
 		      }catch(UnknownHostException e) {
@@ -186,44 +204,45 @@ public class Floor implements Runnable {
 	public void run() {
         System.out.println("Starting at Floor\n");
         unwrapData();
+        sendReceive();
         
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {}
-
-        while(true) {
-            if(scheduler.getSchedulerToFloorCondition() == 1) {
-                System.out.println("\n\tArrived At Floor:" +
-	                		"\n\t\tInitial Floor: " + ((FloorData) scheduler.getServiceableRequests().element()).getInitialFloor() +
-                		" Destination Floor: " + ((FloorData) scheduler.getServiceableRequests().element()).getDestinationFloor() +
-                		" Floor Button: " + ((FloorData)scheduler.getServiceableRequests().element()).getFloorButton() +
-                		" Time: " + ((FloorData)scheduler.getServiceableRequests().element()).getTime() + "\n\n");
-                
-                
-                // removes all the requests that have already been serviced from the allFloorRequests queue
-                scheduler.getAllRequests().removeAll(scheduler.getServiceableRequests());
-                
-                // remove the request from the head of the serviceableRequests queue
-                // since it has already been serviced
-                scheduler.removeServiceableRequests();
-                
-                // prevent the floor from executing multiple times
-                scheduler.setSchedulerToFloorConditionToFalse();
-                
-                if(scheduler.getAllRequests().isEmpty() && scheduler.getServiceableRequests().isEmpty()) {
-                    try {
-                        Thread.sleep(1000);
-                    } catch (InterruptedException e) {}
-                	System.out.println("All requests were processed. The simulation has ended.");
-                	System.exit(1);	
-                }
-               
-            } else {
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException e) {}
-            }
-        }    
+//        try {
+//            Thread.sleep(1000);
+//        } catch (InterruptedException e) {}
+//
+//        while(true) {
+//            if(scheduler.getSchedulerToFloorCondition() == 1) {
+//                System.out.println("\n\tArrived At Floor:" +
+//	                		"\n\t\tInitial Floor: " + ((FloorData) scheduler.getServiceableRequests().element()).getInitialFloor() +
+//                		" Destination Floor: " + ((FloorData) scheduler.getServiceableRequests().element()).getDestinationFloor() +
+//                		" Floor Button: " + ((FloorData)scheduler.getServiceableRequests().element()).getFloorButton() +
+//                		" Time: " + ((FloorData)scheduler.getServiceableRequests().element()).getTime() + "\n\n");
+//                
+//                
+//                // removes all the requests that have already been serviced from the allFloorRequests queue
+//                scheduler.getAllRequests().removeAll(scheduler.getServiceableRequests());
+//                
+//                // remove the request from the head of the serviceableRequests queue
+//                // since it has already been serviced
+//                scheduler.removeServiceableRequests();
+//                
+//                // prevent the floor from executing multiple times
+//                scheduler.setSchedulerToFloorConditionToFalse();
+//                
+//                if(scheduler.getAllRequests().isEmpty() && scheduler.getServiceableRequests().isEmpty()) {
+//                    try {
+//                        Thread.sleep(1000);
+//                    } catch (InterruptedException e) {}
+//                	System.out.println("All requests were processed. The simulation has ended.");
+//                	System.exit(1);	
+//                }
+//               
+//            } else {
+//                try {
+//                    Thread.sleep(1000);
+//                } catch (InterruptedException e) {}
+//            }
+//        }    
     }
 	
 	/**
@@ -235,17 +254,28 @@ public class Floor implements Runnable {
 	 * @throws IOException	
 	 */
 	private void setFloorData(Date date, int iFloor, String direction, int dFloor) throws IOException {
-		FloorData fd = new FloorData(10);    // setting default floors to 10
+		fdPacket = new FloorData(10);    // setting default floors to 10
 		
-		fd.setTime(date);
-		fd.setInitialFloor(iFloor);
-		fd.setFloorButton(direction.toLowerCase()); // Up & Down
-		fd.setDestinationFloor(dFloor);
+		fdPacket.setTime(date);
+		fdPacket.setInitialFloor(iFloor);
+		fdPacket.setFloorButton(direction.toLowerCase()); // Up & Down
+		fdPacket.setDestinationFloor(dFloor);
 		
-		fd.toString();
+		fdPacket.toString();
 		
 		// adding all the requests to the queue that are in the CSV file
-	    scheduler.addRequests(fd);
+	   //scheduler.addRequests(fdPacket);
+		
 	    System.out.println("Scheduler: A request has been added to the queue");
+	    //return fd;
 	}
+	
+	public static void main(String args[])
+	   {
+	    Floor f = new Floor("./floorRequests.csv");
+	    Thread t1 = new Thread(f);
+	    
+	    t1.start();
+	   }
+	
 }
