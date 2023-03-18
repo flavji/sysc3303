@@ -74,6 +74,40 @@ public class Scheduler implements Runnable {
 		      }
 	}
 	
+	// The first request is always gonna get serviced by the first elevator since both of them are stationary to begin with
+	// Once we receive another request while requests are serviced by the elevator, we are gonna put the request in the
+	// allRequests queue and send it to an elevator that is stationary. As they are performing requests, we are going to keep
+	// putting them in the allRequests queue. 
+	// As both the elevators are servicing a request, we are going to receive another request from floor. Then, we are going
+	// to get messages from the elevators asking the scheduler whether it should stop or not. This is where we use the Wall Clock Time.
+	// If request was made less than 8 seconds ago, then we can process that request.
+	
+	// We are getting the initial time of the request and comparing it to 8/2 = 4 seconds since we want to check
+	// the whether we should stop at the next floor or not. We check this before we arrive at the next floor.
+	
+	
+	// To DO at the end: Use larger port numbers instead of smaller ones
+	
+	// we are comparing the initial time of the second request to the initial time of the first request
+	// if the first request (1 to 2) was made at 2:36:30s and the next request was made at 2:36:34s
+	// Once we send the packet from the elevator to the scheduler, we subtract the actual time to the request time
+	// Only check the difference if the request is in the same direction as the elevator
+	// Current time (actual time): 2:36:30s, Request Time: 2:36:20s, Floor: Elevator is at floor 5
+	// Current time - Request time = less than or equal to 8 seconds - the request is serviceable 
+	// The elevator should send a request to the scheduler right before it arrives at each floor, asking it if it needs to stop at the next floor
+	// If the elevator is going in the same direction as the request and the difference b/w req time is less than 8, then we process that request
+	// and the floor that the request is being made is greater than elevator's current floor (going up) and is less than the elevator's current floor (going down)
+	
+	// If both elevators can service the request, we should give it to a random one
+	// by choosing a port number based off a random object.
+	// Use random object to pick either 1 or 2, if its 1 - use port 69. If its 2 - use port 70. 
+	
+	// Questions to ask Ben
+	// does the csv file need to have requests within a short time span (i.e., 5 minute)?
+	// would the system clock be relative to the requests on the csv file (i.e., set the system clock to whatever time the first request is set to in the csv file)?
+	// the floor class should send requests based off the times in the csv files, therefore should we have a system clock be based off the earliest request in the csv file?
+	// When do the elevators go back to stationary?
+	
 	/**
 	 * Add requests to the allFloorRequests queue
 	 * @param fd	a FloorData Object that gets added to the queue
@@ -182,7 +216,9 @@ public class Scheduler implements Runnable {
 			elevators.get(1).setCurrentFloor(fd.getDestinationFloor());
 			elevators.get(1).setDirection(2);
 			portNumber = 70;
-		} else if ((directionElevator2 == 0 || directionElevator2 == 1) && directionElevator1 == 2) {
+		} 
+		// Refactor everything below
+		else if ((directionElevator2 == 0 || directionElevator2 == 1) && directionElevator1 == 2) {
 			// first elevator stationary - give it to elevator 1
 			if(fd.getFloorButton().equals("up")) {
 				elevators.get(0).setDirection(0);
@@ -344,13 +380,14 @@ public class Scheduler implements Runnable {
 	 * Send and receive DatagramPackets to/from elevator 
 	 */
 	 public void sendReceiveElevator() {
-		   while(!allFloorRequests.isEmpty()) {
+	
+		 while(!allFloorRequests.isEmpty()) {
 				   byte elevatorReply[] = new byte[100];
 				   
 				   //form packets to send to elevator
 				   //call method to decide which elevator
 				   
-				   System.out.println("Port number returned: " + checkServiceableRequest(getAllRequests().element()));
+				   //System.out.println("Port number returned: " + checkServiceableRequest(getAllRequests().element()));
 				   String elevatorOneRequests = "";
 				   String elevatorTwoRequests = "";
 
@@ -443,8 +480,9 @@ public class Scheduler implements Runnable {
 				      elevatorAck = new String(receivePacketElevator.getData(),0,receivePacketElevator.getLength());
 				      			      
 			   }
+	 }
 			      			     	      			   			   			   
-		   }
+		   
 
 	/**
 	 * Used to run the Scheduler thread.

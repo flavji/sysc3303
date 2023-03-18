@@ -109,6 +109,20 @@ public class Elevator implements Runnable {
 	}
 	
 
+	// Elevator is going to receive a list of destination floors and it is going to process each request
+	// As it approaches each floor, it is going to ask the scheduler whether it should stop at that floor or not (send UDP Packet)
+		// If packet is empty, then we don't stop since if scheduler sends something, then the elevator must stop at that floor
+		// Otherwise, if the elevator receives an empty packet from the scheduler, then it does not need to stop.
+	// If the new request is made after 8 seconds, then the new request is not serviceable
+	// One queue in the elevator which has a list of destination floors
+	// Another queue in the scheduler that has a list of all requests (time, initial floor, direction, and destination floor)
+	
+	// Have a method that constantly asks the scheduler after every 8 seconds (the time that it takes to move between floors)
+	// After every 8 seconds, the method gets executed - method returns true if we need to stop at the floor, false otherwise
+	// Might be able to call this method in the executeRequest() method
+	
+	
+	
 	/**
 	 * Executes a request based on the destination floor. Switches the state to active and calculates how long the
 	 * elevator would take to reach the destination floor. If there are no more requests in the queue, state stays
@@ -218,7 +232,6 @@ public class Elevator implements Runnable {
 		      			
 		}		
 	}
-	
 	
 	/**
 	 * Used to run the Elevator threads.

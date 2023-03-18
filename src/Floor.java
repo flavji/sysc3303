@@ -1,3 +1,4 @@
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 
@@ -28,6 +29,27 @@ public class Floor implements Runnable {
 	private String csvRequests = "";
 	private DatagramPacket sendPacket, receivePacket, receiveAckPacket;
 	private DatagramSocket socket;
+	private ArrayList<Date> times;
+	
+	// One request at a time from the floor goes to the scheduler -> elevator > scheduler then back to floor
+	// Use arrival times to send the requests
+	// Scheduler assigns it to a specific elevator 
+	// Elevator going up, travels up until it has serviced all the requests and same for elevator going up
+	// When scheduler receives the request, its gonna add it to the queue we have
+	// Use the queue as people that are waiting for the elevator, and each elevator has a queue that has all the people on it 
+	// Elevator needs a list of destination floors 
+	// scheduler needs a list of initial and destination floor - scheduler keeps track of all ppl waiting to enter elevator
+	// elevator keeps track of ppl on it 
+	// You can have any number of elevators as a result 
+	// Elevator has one queue - it can store the number of people in the elevator and the destination floor the elevator is supposed to go to
+	
+	// We're still confused about how to implement the timer - should it be like as soon as the program starts, the timer begins?
+	// Wall clock - 10 real seconds (import statement) go by, simulator time - doesnt actually wait the 10 seconds 
+	// Floor controls simulation time 
+	// Will each request count as one person in the elevator? 
+	
+	// If the requests happen simultaneously, does the floor send both the requests
+	// and then the scheduler determines if they are serviceable?
 	
 	/**
 	 * Constructor for Floor that initializes a scheduler and floor data.
@@ -36,6 +58,7 @@ public class Floor implements Runnable {
 	 */
 	public Floor(String floorRequests) {
 		this.floorRequests = floorRequests;
+		this.times = new ArrayList<Date>();
 		
 		 try {
 	         socket = new DatagramSocket();
@@ -45,6 +68,41 @@ public class Floor implements Runnable {
 	      }
 		 
 	}
+	
+	/**
+	 * Add times to the times ArrayList to check how long we are going to be 
+	 * sleeping for in between requests 
+	 */
+	public void addTimes() {
+		try {
+			// parsing a CSV file into BufferedReader class constructor
+			File csvFile = new File(floorRequests);
+		    BufferedReader br = new BufferedReader(new FileReader(csvFile));
+
+		    String line = "";
+		    while ((line = br.readLine()) != null)   //returns a Boolean value
+		    {
+		    	String[] elevatorData = new String[4];
+			    elevatorData = line.split(",");
+			
+			    String start_date = elevatorData[0];
+			    DateFormat formatter = new SimpleDateFormat("hh:mm:ss");
+			    Date date = (Date) formatter.parse(start_date);
+			    // parses out the date, so the date is in this format: hh:mm:ss
+			    times.add(date);
+		    }
+		    br.close();
+		} catch(Exception e) {
+			e.printStackTrace();
+		}
+
+	}
+	
+	// Check which request is the first one based on the wall clock time
+	// the request that has the smallest time in the CSV file is going to run first
+	// implement selectRequest() method (don't need to create a new method - we can modify unwrapData() method)
+	
+	// We start the wall clock time when we send the first request
 	
 	/**
 	 * Reads the floorRequests.csv file that contains instructions for the elevator to execute.
@@ -58,6 +116,7 @@ public class Floor implements Runnable {
 		    BufferedReader br = new BufferedReader(new FileReader(csvFile));
 
 		    String line = "";
+		    int lineNumber = 1;
 		    while ((line = br.readLine()) != null)   //returns a Boolean value
 		    {
 		    	String[] elevatorData = new String[4];
@@ -73,6 +132,24 @@ public class Floor implements Runnable {
 			    		elevatorData[2],
 			    		Integer.parseInt(elevatorData[3]));
 			    
+	            // spawn a new thread for each floor request
+	            Thread thread = new Thread(() -> {
+	                sendReceive();
+	            });
+	            thread.start();
+			    long time = 0;
+	            if (lineNumber < times.size()) {
+	                time = times.get(lineNumber).getTime() - times.get(lineNumber - 1).getTime();
+	            }
+			    System.out.println("TIME VALUE: " + time);
+			    try {
+					Thread.sleep(time);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			    
+			    lineNumber++;
 			    
 		    }
 	    
@@ -96,7 +173,7 @@ public class Floor implements Runnable {
         
         
 	      try {
-	      sendPacket = new DatagramPacket(floorData, floorData.length, InetAddress.getLocalHost(), 23);
+	    	  sendPacket = new DatagramPacket(floorData, floorData.length, InetAddress.getLocalHost(), 23);
 	      }catch(UnknownHostException e) {
 		         e.printStackTrace();
 		         System.exit(1);
@@ -138,12 +215,12 @@ public class Floor implements Runnable {
 	      System.out.println("Containing in bytes: " + Arrays.toString(receivePacket.getData()).trim());
 	      
 	      
-	      //form packet to receive Ack packet
+	      // form packet to receive Ack packet
 			byte floorAck[] = new byte[100];
 		    receiveAckPacket = new DatagramPacket(floorAck, floorAck.length);
 	      
 	      
-	      //receive the Ack packet from the scheduler
+	      // receive the Ack packet from the scheduler
 	      try {        
 	         System.out.println("Waiting..."); // so we know we're waiting
 	         socket.receive(receiveAckPacket);
@@ -160,8 +237,8 @@ public class Floor implements Runnable {
 	      System.out.println("Containing: " + new String(receiveAckPacket.getData(),0,receiveAckPacket.getLength()));
 	      System.out.println("Containing in bytes: " + Arrays.toString(receiveAckPacket.getData()).trim());
 		      		      		      		      		      		      	
-		  //close the sockets once done
-		  socket.close();
+		  // close the sockets once done
+		  //socket.close();
 	}
 
 	/**
@@ -170,8 +247,9 @@ public class Floor implements Runnable {
 	@Override
 	public void run() {
         System.out.println("Starting at Floor\n");
+        addTimes();
         unwrapData();
-        sendReceive();
+//        sendReceive();
     }
 	
 	/**
@@ -193,13 +271,11 @@ public class Floor implements Runnable {
 		
 		fdPacket.toString();
 		
-		
 		// wrapping floorData to String
-		csvRequests = csvRequests.concat(fdPacket.getTime() + "," + fdPacket.getInitialFloor() + "," + fdPacket.getFloorButton() + "," + fdPacket.getDestinationFloor() + "/");
+		csvRequests = fdPacket.getTime() + "," + fdPacket.getInitialFloor() + "," + fdPacket.getFloorButton() + "," + fdPacket.getDestinationFloor();
+//		csvRequests = csvRequests.concat(fdPacket.getTime() + "," + fdPacket.getInitialFloor() + "," + fdPacket.getFloorButton() + "," + fdPacket.getDestinationFloor() + "/");
      
 		System.out.println(csvRequests);
-		
-	    System.out.println("Scheduler: A request has been added to the queue");
 	}
 	
 	public static void main(String args[])
