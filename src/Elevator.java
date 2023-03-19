@@ -10,6 +10,9 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.Objects;
 
+// NOTES: Send the entire floordata object from scheduler to elevator.
+// The elevator is responsible for getting the destination floor 
+// out of the floordata object that it gets from the scheduler.
 /**
  * Elevator Class that consists of the elevator thread that will execute after the scheduler sends the request.
  * 
@@ -27,17 +30,26 @@ public class Elevator implements Runnable {
 	//private int currentFloor;	
 	// the floor the elevator needs to go to, so it can take the request
 	// the initial floor of the request
-
+	
+	// destinationFloors is gonna be a queue of destination floors 
+	
+	
+	// Implementations in Elevator Class
+	// Refactor executeRequest() method
+	// Refactor print statements to make the output easy to follow
+	// Open/Close Doors and People need to go in: 15 seconds
+	// States: stationary, moving up, moving down, doors open, doors close
+	// two separate Thread.sleep(): sleeping when the elevator is moving between floors and sleeping when the doors open/close and people get on the elevator
+	// getter for the state of the elevator: 0 (stationary), 1 (moving up), 2 (moving down), 3 (doors opening), 4 (doors closing)
+	// We have one getter that returns the state that the elevator is currently in
 	
 	private int direction;
 	private static long travelTime = 1000; // average time elevator takes to move 1 floor
-	Collection<Integer> requestsQueue;
+	Collection<Integer> destinationFloors;
 	private Integer currentFloor;
-
 	
 	DatagramPacket sendPacket, receivePacket;
 	DatagramSocket socketScheduler, socketFloor;
-	
 	
 	
 	/**
@@ -47,7 +59,7 @@ public class Elevator implements Runnable {
 	 */
 	public Elevator(int portNumber) {
 		this.currentFloor = 2; // assume elevator starts at floor 2 
-		this.requestsQueue = Collections.synchronizedCollection(new LinkedList<>());
+		this.destinationFloors = Collections.synchronizedCollection(new LinkedList<>());
 		this.direction = 2; 
 		
 		
@@ -96,7 +108,7 @@ public class Elevator implements Runnable {
 	 * 
 	 * @return An integer value with the elevator's queue size.
 	 */
-	public int getQueueSize() { return requestsQueue.size(); }
+	public int getQueueSize() { return destinationFloors.size(); }
 	
 	/**
 	 * Adds request to queue based on most efficient position.
@@ -104,7 +116,7 @@ public class Elevator implements Runnable {
 	 * @param destinationFloor The destination floor of the given request.
 	 */
 	public void addRequest(int destinationFloor, int position) {
-		requestsQueue.add(destinationFloor);// need to implement the position as well
+		destinationFloors.add(destinationFloor);// need to implement the position as well
 
 	}
 	
@@ -146,7 +158,7 @@ public class Elevator implements Runnable {
 		catch (InterruptedException e) {}
 		
 		// switch elevator back to stationary if there are no more requests
-		if (!this.requestsQueue.isEmpty()) { this.direction = 2; }
+		if (!this.destinationFloors.isEmpty()) { this.direction = 2; }
 		
 		this.currentFloor = destinationFloor; // update current floor
 		

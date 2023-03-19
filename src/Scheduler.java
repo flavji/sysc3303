@@ -272,7 +272,7 @@ public class Scheduler implements Runnable {
 	 */
 	 public void sendReceiveFloor() {
 		   
-			   
+			   while(true) {
 				   byte floorData[] = new byte[1000];
 				   byte floorReply[] = new byte[100];
 				   String reply = "Scheduler has received the request";
@@ -369,6 +369,7 @@ public class Scheduler implements Runnable {
 					         e.printStackTrace();
 					         System.exit(1);
 					      }
+			   }
 			   }
 			  
 				    
@@ -514,3 +515,6 @@ public class Scheduler implements Runnable {
 	   }
 	
 }
+
+// The only thing that needs to be implemented/refactored in the scheduler class
+// is the checkServiceableRequest method for now

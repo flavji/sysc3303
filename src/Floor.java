@@ -133,10 +133,11 @@ public class Floor implements Runnable {
 			    		Integer.parseInt(elevatorData[3]));
 			    
 	            // spawn a new thread for each floor request
-	            Thread thread = new Thread(() -> {
-	                sendReceive();
-	            });
-	            thread.start();
+//	            Thread thread = new Thread(() -> {
+//	                sendReceive();
+//	            });
+			    sendReceive();
+//	            thread.start();
 			    long time = 0;
 	            if (lineNumber < times.size()) {
 	                time = times.get(lineNumber).getTime() - times.get(lineNumber - 1).getTime();
@@ -144,12 +145,14 @@ public class Floor implements Runnable {
 			    System.out.println("TIME VALUE: " + time);
 			    try {
 					Thread.sleep(time);
+					lineNumber++;
+					continue;
 				} catch (InterruptedException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
 			    
-			    lineNumber++;
+			   
 			    
 		    }
 	    
