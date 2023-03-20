@@ -47,6 +47,7 @@ public class Elevator implements Runnable {
 	private static long travelTime = 1000; // average time elevator takes to move 1 floor
 	Collection<Integer> destinationFloors;
 	private Integer currentFloor;
+	//private byte[] floors;
 	
 	DatagramPacket sendPacket, receivePacket;
 	DatagramSocket socketScheduler, socketFloor;
@@ -206,6 +207,19 @@ public class Elevator implements Runnable {
 		     String[] arrValues = data.split("/");
 		     for(int i = 0; i < arrValues.length; i++) {
 		    	 String[] arrValues2 = arrValues[i].split(",");
+		    	 
+		    	 //This is the destination floor
+		    	 //System.out.println("Destination floor: " + arrValues2[3] );
+		    	 
+		    	 //add to the queue, need to change this if condition
+
+		    	 if(arrValues2[0] != null && arrValues2.length == 4 ) {
+		    		 addRequest(Integer.parseInt(arrValues2[3]), getCurrentFloor());
+		    		 System.out.println("Destination floor: " + arrValues2[3] );
+		    		 System.out.println("destination floor q: " + destinationFloors );
+		    		 
+		    	 }
+		    	 
 //		    	 executeRequest(Integer.parseInt(arrValues2[3]));
 		    	 System.out.println(Thread.currentThread().getName() + " " + arrValues[i].toString());
 		     }
