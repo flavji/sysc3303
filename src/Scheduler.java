@@ -23,7 +23,7 @@ import java.util.Queue;
  * @author Fareen Lavji
  * @author Harishan Amutheesan
  * 
- * @version 02.27.2023
+ * @version 03.25.2023
  */
 public class Scheduler implements Runnable {
 	
@@ -33,8 +33,9 @@ public class Scheduler implements Runnable {
 	private int[] portNumbers = new int[5];
 	private String elevatorAck = "";
 	private int portNumber;
+	private Map<String, int> elevatorLocations;
 	
-	DatagramPacket receivePacketFloor, receivePacketElevator, sendPacketFloor, sendPacketElevator1, sendPacketElevator2, sendAckPacketFloor;
+	DatagramPacket receiveElevatorPacket, sendPacketElevator1, sendPacketElevator2;
 	DatagramSocket sendAndReceiveSocket, receiveSocket, floorSocket, elevatorSocket;
 	
 	// Assume all the requests in the CSV file come in simultaneously or around roughly the same time.
@@ -50,10 +51,11 @@ public class Scheduler implements Runnable {
 	 * Constructor for Scheduler.
 	 */
 	public Scheduler() {
-		
+
 		this.elevators = new ArrayList<Elevator>();
-		this.allFloorRequests = new LinkedList<FloorData>();
+		this.allFloorRequests = Collections.synchronizedCollection(new LinkedList<FloorData>());
 		this.floorRequestReceived = false;
+		// this.elevatorLocations = Collection.synchronizedcollection(new HashMap<String, int>());
 		
 		//initialize ports, assumption: 2 elevators by default
 		portNumbers[0] = 50;
@@ -61,17 +63,16 @@ public class Scheduler implements Runnable {
 
 		elevators.add(new Elevator( portNumbers[0])); //adding one default elevator to elevator list
 		elevators.add(new Elevator( portNumbers[1]));
-		
+
 		portNumber = 0;
 		
-		  try {
-		         floorSocket = new DatagramSocket(23);
-		         elevatorSocket = new DatagramSocket();
-
-		      } catch (SocketException se) {
-		         se.printStackTrace();
-		         System.exit(1);
-		      }
+		try {
+			floorSocket = new DatagramSocket(23);
+			elevatorSocket = new DatagramSocket();
+		} catch (SocketException se) {
+			se.printStackTrace();
+			System.exit(1);
+		}
 	}
 	
 	// The first request is always gonna get serviced by the first elevator since both of them are stationary to begin with
@@ -109,14 +110,12 @@ public class Scheduler implements Runnable {
 	// When do the elevators go back to stationary?
 	
 	/**
-	 * Add requests to the allFloorRequests queue
-	 * @param fd	a FloorData Object that gets added to the queue
+	 * Adds a request to the allFloorRequests queue.
+	 *
+	 * @param fd A FloorData Object that gets added to the allFloorRequests queue.
 	 */
-	public void addRequests(FloorData fd) {
-		
-		allFloorRequests.add(fd);
-	}
-	
+	public void addRequests(FloorData fd) { allFloorRequests.add(fd); }
+
 	/**
 	 * remove the first FloorData Object from the allFloorRequests queue
 	 */
@@ -125,64 +124,23 @@ public class Scheduler implements Runnable {
 	}
 	
 	/**
-	 * Get the allFloorRequests queue
+	 * Get the allFloorRequests queue.
+	 *
 	 * @return	a Queue, the allFloorRequests queue
 	 */
 	public Queue<FloorData> getAllRequests() {
 		return allFloorRequests;
 	}
 	
+
 	/**
-	 * Adds to queue by parsing the packet it received from the floor
-	 * @param arr	a String, the set of requests separated by a "/" that the scheduler received from the Floor
-	 */
-	private void parsePacket(String arr) {
-
-        String data = arr;
-        //System.out.println(data);
-
-        String[] arrValues = data.split("/");
-
-        for(int i = 0; i < arrValues.length ; i++) {
-        	FloorData fd = new FloorData(10);
-
-        	System.out.println("floorData: " + arrValues[i]);
-            String[] arrValues2 = arrValues[i].split(",");
-
-            String dateTimeString = arrValues2[0];
-            String timeString = dateTimeString.substring(11, 19);
-
-            try {
-            	System.out.println("floorData: " + arrValues2[0]);
-                String start_date = timeString;
-                DateFormat formatter = new SimpleDateFormat("hh:mm:ss");
-                Date date;
-
-                date = (Date) formatter.parse(start_date);
-                 fd.setTime(date);
-                 fd.setInitialFloor(Integer.parseInt(arrValues2[1]));
-                 fd.setFloorButton(arrValues2[2]);
-                 fd.setDestinationFloor(Integer.parseInt(arrValues2[3]));
-
-
-                 for(FloorData item: getAllRequests()) {
-                	 System.out.println("ITEM IN QUEUE: " + item.getTime());
-                 }
-                 //add to queue here
-                 addRequests(fd);
-                 System.out.println("A request has been to the all Requests q" );
-
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-    }
-	/**
-	 * Checks whether the request is serviceable at the moment
-	 * @param fd	a FloorData object, the request that needs to be serviced
-	 * @return	an int, port number of elevator we are sending the request to
+	 * Checks where the request can be serviced.
+	 *
+	 * @param fd A FloorData object containing the request that needs to be serviced.
+	 * @return An int port number of the elevator we are sending the request to.
 	 */
 	public int checkServiceableRequest(FloorData fd) {
+
 		int currentFloorElevator1 = elevators.get(0).getCurrentFloor();
 		int currentFloorElevator2 = elevators.get(1).getCurrentFloor();
 		
@@ -265,229 +223,212 @@ public class Scheduler implements Runnable {
 		}
 		return portNumber;
 	}
-		
-	
-	/**
-	 * Send and receive DatagramPackets to/from floor 
-	 */
-	 public void sendReceiveFloor() {
-		   
-			   while(true) {
-				   byte floorData[] = new byte[1000];
-				   byte floorReply[] = new byte[100];
-				   String reply = "Scheduler has received the request";
-				   
-				   //form packets to receive from elevator
-				   receivePacketFloor = new DatagramPacket(floorData, floorData.length);
-				   
-				   System.out.println(" Scheduler: Waiting for Packet.\n");
-				   			   
-					// Block until a datagram packet is received from elevator
-				      try {        
-				         System.out.println(" Floor method Waiting..."); // so we know we're waiting
-				         floorSocket.receive(receivePacketFloor);
-				        
-				      } catch (IOException e) {
-				         System.out.print("IO Exception: likely:");
-				         System.out.println("Receive Socket Timed Out.\n" + e);
-				         e.printStackTrace();
-				         System.exit(1);
-				      }
-				      
-				      //set boolean to true once floor request is received from floor
-				      floorRequestReceived = true;
-				      
-				      parsePacket(new String(receivePacketFloor.getData(),0,receivePacketFloor.getLength()));
-				      
-				  
-				      
-				     //print the received datagram
-				      System.out.println("Scheduler: Packet received from Floor:");
-				      System.out.println("From host: " + receivePacketFloor.getAddress());
-				      System.out.println("Host port: " + receivePacketFloor.getPort());
-				      System.out.println("Length: " + receivePacketFloor.getLength());
-				      System.out.println("Containing: " + new String(receivePacketFloor.getData(),0,receivePacketFloor.getLength()));
-				      System.out.println("Containing in bytes: " + Arrays.toString(receivePacketFloor.getData()));
-				      
-				      
-				     //form packet to reply to floor
-				      floorReply = reply.getBytes();
-				      try {
-				    	  sendPacketFloor = new DatagramPacket(floorReply, floorReply.length, InetAddress.getLocalHost(), receivePacketFloor.getPort());
-				      }catch(UnknownHostException e) {
-					         e.printStackTrace();
-					         System.exit(1);
-					  }
-				      
-				      
-				      // send the reply packet to floor
-				      try {
-				    	  floorSocket.send(sendPacketFloor);
-				      } catch (IOException e) {
-				         e.printStackTrace();
-				         System.exit(1);
-				      }
-				      
-					  //print the reply sent back to floor
-				      System.out.println("Scheduler: Reply Packet sent to Floor:");
-				      System.out.println("From host: " + sendPacketFloor.getAddress());
-				      System.out.println("Host port: " + sendPacketFloor.getPort());
-				      System.out.println("Length: " + sendPacketFloor.getLength());
-				      System.out.println("Containing: " + new String(sendPacketFloor.getData(),0,sendPacketFloor.getLength()));
-				      System.out.println("Containing in bytes: " + Arrays.toString(sendPacketFloor.getData()));
-				      
-				      if(floorRequestReceived) {
-				    	  sendReceiveElevator();
-				      }
-					  
-				 	   
-				      //if ack message from elevator 
-				      if(!elevatorAck.isEmpty()) {
-				    	  byte floorAck[] = new byte[100];
-				    	  floorAck = elevatorAck.getBytes();
-				    	  
-						  //form Ack packet to floor
-					      try {
-					    	  sendAckPacketFloor = new DatagramPacket(floorAck, floorAck.length, InetAddress.getLocalHost(), receivePacketFloor.getPort());
-					      }catch(UnknownHostException e) {
-						         e.printStackTrace();
-						         System.exit(1);
-						      }
-					      
-					      //print the ack packet sent to floor
-					      System.out.println("Scheduler: Ack Packet sent to Floor:");
-					      System.out.println("From host: " + sendAckPacketFloor.getAddress());
-					      System.out.println("Host port: " + sendAckPacketFloor.getPort());
-					      System.out.println("Length: " + sendAckPacketFloor.getLength());
-					      System.out.println("Containing: " + new String(sendAckPacketFloor.getData(),0,sendAckPacketFloor.getLength()));
-					      System.out.println("Containing in bytes: " + Arrays.toString(sendAckPacketFloor.getData()));
-					      
-					      // send the reply packet to floor
-					      try {
-					    	  floorSocket.send(sendAckPacketFloor);
-					      } catch (IOException e) {
-					         e.printStackTrace();
-					         System.exit(1);
-					      }
-			   }
-			   }
-			  
-				    
-			      }
-			      
-			      
-			      		
-	/**
-	 * Send and receive DatagramPackets to/from elevator 
-	 */
-	 public void sendReceiveElevator() {
-	
-		 while(!allFloorRequests.isEmpty()) {
-				   byte elevatorReply[] = new byte[100];
-				   
-				   //form packets to send to elevator
-				   //call method to decide which elevator
-				   
-				   //System.out.println("Port number returned: " + checkServiceableRequest(getAllRequests().element()));
-				   String elevatorOneRequests = "";
-				   String elevatorTwoRequests = "";
-
-				  int counter = 0;
-				   // Loop through all requests and append them to the corresponding string
-				   for (FloorData item : getAllRequests()) {
-					   System.out.println("item: " + item.getTime());
-				       if (counter % 2 == 0) {
-				           elevatorOneRequests += item.getTime().toString() + ","
-				                   + item.getInitialFloor() + ","
-				                   + item.getFloorButton() + ","
-				                   + item.getDestinationFloor() + "/";
-				       }  else {
-				           elevatorTwoRequests += item.getTime().toString() + ","
-				                   + item.getInitialFloor() + ","
-				                   + item.getFloorButton() + ","
-				                   + item.getDestinationFloor() + "/";
-				       }
-				       counter++;
-				   }
-				   
-				// Initialize DatagramPacket objects with the final values of the strings
-				   try {
-				       sendPacketElevator1 = new DatagramPacket(elevatorOneRequests.getBytes(), elevatorOneRequests.length(), InetAddress.getLocalHost(), 69);
-				       sendPacketElevator2 = new DatagramPacket(elevatorTwoRequests.getBytes(), elevatorTwoRequests.length(), InetAddress.getLocalHost(), 70);
-
-				       // Send the packets to the corresponding elevators
-				       // ...
-				   } catch (UnknownHostException e) {
-				       e.printStackTrace();
-				       System.exit(1);
-				   }
-				   
-					System.out.println("being executed 1" + elevatorOneRequests);
-					System.out.println("being executed 2" + elevatorTwoRequests);
-				      
-				      
-				     //call the method to check if you can send this request to the elevator
-				      
-				     //send the packet to the elevator 
-				      try {
-				    	  elevatorSocket.send(sendPacketElevator1);
-					      } catch (IOException e) {
-					         e.printStackTrace();
-					         System.exit(1);
-					  }	
-				      
-				      try {
-				    	  elevatorSocket.send(sendPacketElevator2);
-					      } catch (IOException e) {
-					         e.printStackTrace();
-					         System.exit(1);
-					  }	
-				      
-				     //print the sent datagram to the elevator
-				      System.out.println("Scheduler: Floor Request Packet sent to Elevator:");
-				      System.out.println("Containing: " + new String(sendPacketElevator1.getData(),0,sendPacketElevator1.getLength()));
-				      System.out.println("Containing in bytes: " + Arrays.toString(sendPacketElevator1.getData())); 
-				      
-				      System.out.println("Scheduler: Floor Request Packet sent to Elevator:");
-				      System.out.println("Containing: " + new String(sendPacketElevator2.getData(),0,sendPacketElevator2.getLength()));
-				      System.out.println("Containing in bytes: " + Arrays.toString(sendPacketElevator2.getData())); 
-				      
-				      
-				      //form packet to receive from elevator
-				      receivePacketElevator = new DatagramPacket(elevatorReply, elevatorReply.length);
-				      
-					// Block until a datagram packet is received from elevator
-				      try {        
-				         System.out.println(" Elevator method Waiting..."); // so we know we're waiting
-				         elevatorSocket.receive(receivePacketElevator);
-				        
-				      } catch (IOException e) {
-				         System.out.print("IO Exception: likely:");
-				         System.out.println("Receive Socket Timed Out.\n" + e);
-				         e.printStackTrace();
-				         System.exit(1);
-				      }
-				      
-				      //print the received datagram from the elevator
-				      System.out.println("Scheduler: Ack Packet received from Elevator:");
-				      System.out.println("From host: " + receivePacketElevator.getAddress());
-				      System.out.println("Host port: " + receivePacketElevator.getPort());
-				      System.out.println("Length: " + receivePacketElevator.getLength());
-				      System.out.println("Containing: " + new String(receivePacketElevator.getData(),0,receivePacketElevator.getLength()));
-				      System.out.println("Containing in bytes: " + Arrays.toString(receivePacketElevator.getData())); 	
-				      
-				      allFloorRequests.remove();
-				      //instantiate the Ack from the elevator
-				      elevatorAck = new String(receivePacketElevator.getData(),0,receivePacketElevator.getLength());
-				      			      
-			   }
-	 }
-			      			     	      			   			   			   
-		   
 
 	/**
-	 * Used to run the Scheduler thread.
+	 * Send and receive Datagram Packets to and from the Floor.
 	 */
+	public void sendReceiveFloor() {
+		while(true) {
+			byte floorData[] = new byte[1000];
+			String reply = "Scheduler has received the request";
+
+			// form packets to receive and send data to and from the Floor.
+			DatagramPacket receiveFloorPacket = new DatagramPacket(floorData, floorData.length);
+			DatagramPacket sendFloorPacket, sendFloorAckPacket;
+
+			System.out.println(" Scheduler: Waiting for Packet.\n");
+
+			// Block until a datagram packet is received from elevator
+			try {
+				System.out.println(" Floor method Waiting..."); // so we know we're waiting
+				this.floorSocket.receive(receiveFloorPacket);
+
+			} catch (IOException e) {
+				System.out.println("Receive Socket Timed Out.\n" + e);
+				e.printStackTrace();
+				System.exit(1);
+			}
+
+			//set boolean to true once floor request is received from floor
+			floorRequestReceived = true;
+
+			parsePacket(new String(receiveFloorPacket.getData(),0,receiveFloorPacket.getLength()));
+
+			//print the received datagram
+			System.out.println("Scheduler: Packet received from Floor:");
+			System.out.println("From host: " + receiveFloorPacket.getAddress());
+			System.out.println("Host port: " + receiveFloorPacket.getPort());
+			System.out.println("Length: " + receiveFloorPacket.getLength());
+			System.out.println("Containing: " + new String(receiveFloorPacket.getData(),0,receiveFloorPacket.getLength()));
+			System.out.println("Containing in bytes: " + Arrays.toString(receiveFloorPacket.getData()));
+
+			//form packet to reply to floor
+			try {
+				sendFloorPacket = new DatagramPacket(reply.getBytes(),
+						reply.getBytes().length,
+						InetAddress.getLocalHost(),
+						receiveFloorPacket.getPort());
+			} catch(UnknownHostException e) {
+				 e.printStackTrace();
+				 System.exit(1);
+			}
+
+			// send the reply packet to floor
+			try {
+				floorSocket.send(sendFloorPacket);
+			} catch (IOException e) {
+				e.printStackTrace();
+				System.exit(1);
+			}
+
+			//print the reply sent back to floor
+			System.out.println("Scheduler: Reply Packet sent to Floor:");
+			System.out.println("From host: " + sendFloorPacket.getAddress());
+			System.out.println("Host port: " + sendFloorPacket.getPort());
+			System.out.println("Length: " + sendFloorPacket.getLength());
+			System.out.println("Containing: " + new String(sendFloorPacket.getData(),0,sendFloorPacket.getLength()));
+			System.out.println("Containing in bytes: " + Arrays.toString(sendFloorPacket.getData()));
+
+			if(floorRequestReceived) {
+				sendReceiveElevator();
+			}
+
+			// if ack message from elevator
+			if(!elevatorAck.isEmpty()) {
+				byte floorAck[] = new byte[100];
+				floorAck = elevatorAck.getBytes();
+
+				//form Ack packet to floor
+				try {
+					sendFloorAckPacket = new DatagramPacket(floorAck,
+							floorAck.length,
+							InetAddress.getLocalHost(),
+							receivePacketFloor.getPort());
+				} catch(UnknownHostException e) {
+					 e.printStackTrace();
+					 System.exit(1);
+				}
+
+				//print the ack packet sent to floor
+				System.out.println("Scheduler: Ack Packet sent to Floor:");
+				System.out.println("From host: " + sendFloorAckPacket.getAddress());
+				System.out.println("Host port: " + sendFloorAckPacket.getPort());
+				System.out.println("Length: " + sendFloorAckPacket.getLength());
+				System.out.println("Containing: " + new String(sendFloorAckPacket.getData(),0,sendFloorAckPacket.getLength()));
+				System.out.println("Containing in bytes: " + Arrays.toString(sendFloorAckPacket.getData()));
+
+				// send the reply packet to floor
+				try {
+					floorSocket.send(sendFloorAckPacket);
+				} catch (IOException e) {
+					e.printStackTrace();
+					System.exit(1);
+				}
+			}
+	 	}
+	}
+
+	/**
+	 * Send and receive DatagramPackets to and from elevator.
+	 */
+	public void sendReceiveElevator() {
+		while(!allFloorRequests.isEmpty()) {
+			byte elevatorReply[] = new byte[100];
+				   
+			//form packets to send to elevator
+			DatagramPacket receiveElevatorPacket, sendPacketElevator1, sendPacketElevator2;
+
+			String elevatorOneRequests = "";
+			String elevatorTwoRequests = "";
+
+			int counter = 0;
+			// Loop through all requests and append them to the corresponding string
+			for (FloorData item : getAllRequests()) {
+				System.out.println("item: " + item.getTime());
+				if (counter % 2 == 0) {
+					elevatorOneRequests += item.getTime().toString() + ","
+							+ item.getInitialFloor() + ","
+				            + item.getFloorButton() + ","
+				            + item.getDestinationFloor() + "/";
+				} else {
+					elevatorTwoRequests += item.getTime().toString() + ","
+							+ item.getInitialFloor() + ","
+				            + item.getFloorButton() + ","
+				            + item.getDestinationFloor() + "/";
+				}
+				counter++;
+			}
+				   
+			// Initialize DatagramPacket objects with the final values of the strings
+			try {
+				sendPacketElevator1 = new DatagramPacket(elevatorOneRequests.getBytes(), elevatorOneRequests.length(), InetAddress.getLocalHost(), 69);
+				sendPacketElevator2 = new DatagramPacket(elevatorTwoRequests.getBytes(), elevatorTwoRequests.length(), InetAddress.getLocalHost(), 70);
+
+				// Send the packets to the corresponding elevators
+			} catch (UnknownHostException e) {
+				e.printStackTrace();
+				System.exit(1);
+			}
+				   
+			System.out.println("being executed 1" + elevatorOneRequests);
+			System.out.println("being executed 2" + elevatorTwoRequests);
+
+			//call the method to check if you can send this request to the elevator
+			//send the packet to the elevator
+			try {
+				elevatorSocket.send(sendPacketElevator1);
+			} catch (IOException e) {
+				e.printStackTrace();
+				System.exit(1);
+			}
+
+			try {
+				elevatorSocket.send(sendPacketElevator2);
+			} catch (IOException e) {
+				e.printStackTrace();
+				System.exit(1);
+			}
+
+			//print the sent datagram to the elevator
+			System.out.println("Scheduler: Floor Request Packet sent to Elevator:");
+			System.out.println("Containing: " + new String(sendPacketElevator1.getData(),0,sendPacketElevator1.getLength()));
+			System.out.println("Containing in bytes: " + Arrays.toString(sendPacketElevator1.getData()));
+				      
+			System.out.println("Scheduler: Floor Request Packet sent to Elevator:");
+			System.out.println("Containing: " + new String(sendPacketElevator2.getData(),0,sendPacketElevator2.getLength()));
+			System.out.println("Containing in bytes: " + Arrays.toString(sendPacketElevator2.getData()));
+
+			//form packet to receive from elevator
+			receivePacketElevator = new DatagramPacket(elevatorReply, elevatorReply.length);
+				      
+			// Block until a datagram packet is received from elevator
+			try {
+				System.out.println(" Elevator method Waiting..."); // so we know we're waiting
+				elevatorSocket.receive(receivePacketElevator);
+			} catch (IOException e) {
+				System.out.print("IO Exception: likely:");
+				System.out.println("Receive Socket Timed Out.\n" + e);
+				e.printStackTrace();
+				System.exit(1);
+			}
+				      
+			//print the received datagram from the elevator
+			System.out.println("Scheduler: Ack Packet received from Elevator:");
+			System.out.println("From host: " + receivePacketElevator.getAddress());
+			System.out.println("Host port: " + receivePacketElevator.getPort());
+			System.out.println("Length: " + receivePacketElevator.getLength());
+			System.out.println("Containing: " + new String(receivePacketElevator.getData(),0,receivePacketElevator.getLength()));
+			System.out.println("Containing in bytes: " + Arrays.toString(receivePacketElevator.getData()));
+				      
+			allFloorRequests.remove();
+			//instantiate the Ack from the elevator
+			elevatorAck = new String(receivePacketElevator.getData(),0,receivePacketElevator.getLength());
+		}
+	}
+
+	/**
+	* Used to run the Scheduler thread.
+	*/
 	@Override
 	public void run() {
 		
@@ -499,21 +440,24 @@ public class Scheduler implements Runnable {
         	System.out.println("Elevator method runs");
         	sendReceiveElevator();
         }
-        
     }
 	
-	public static void main(String args[])
-	   {
-			Scheduler s = new Scheduler();
-		    Thread t1 = new Thread(s, "Floor");
-		    Thread t2 = new Thread(s, "Elevator");
-		    
-		    
-		    t1.start();
-		    t2.start();
-	    
-	   }
-	
+	public static void main(String args[]) {
+		Scheduler s = new Scheduler();
+		Thread floorThread = new Thread(s, "Floor");
+		Thread elevatorThread = new Thread(s, "Elevator");
+
+		floorThread.start();
+		elevatorThread.start();
+   }
+
+   private void setupElevatorsMap() {
+		for (int i = 0; i < elevators.size(); i++) {
+			int elevatorNum = i + 1;
+			this.elevatorLocations.put("currentFloorElevator" + elevatorNum, elevators.get(i).getCurrentFloor());
+			this.elevatorLocations.put("directionElevator" + elevatorNum, elevators.get(i).getDirection());
+		}
+   }
 }
 
 // The only thing that needs to be implemented/refactored in the scheduler class
