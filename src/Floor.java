@@ -133,10 +133,11 @@ public class Floor implements Runnable {
 			    		Integer.parseInt(elevatorData[3]));
 			    
 	            // spawn a new thread for each floor request
-//	            Thread thread = new Thread(() -> {
-//	                sendReceive();
-//	            });
-			    sendReceive();
+	            Thread thread = new Thread(() -> {
+	                sendReceive();
+	            });
+	            thread.start();
+			    //sendReceive();
 //	            thread.start();
 			    long time = 0;
 	            if (lineNumber < times.size()) {
@@ -194,7 +195,6 @@ public class Floor implements Runnable {
 	      //print the sent packet
 	      System.out.println("Floor: Data Request Packet sent to scheduler:");
 	      System.out.println("Containing: " + new String(sendPacket.getData(),0,sendPacket.getLength()));
-	      System.out.println("Containing in bytes: " + Arrays.toString(sendPacket.getData()).trim());
 	      
 	      
 	      //form packet to receive reply from scheduler
@@ -215,7 +215,6 @@ public class Floor implements Runnable {
 	      // print the reply packet received from the scheduler
 	      System.out.println("\nFloor: Reply Packet received from scheduler:");
 	      System.out.println("Containing: " + new String(receivePacket.getData(),0,receivePacket.getLength()));
-	      System.out.println("Containing in bytes: " + Arrays.toString(receivePacket.getData()).trim());
 	      
 	      
 	      // form packet to receive Ack packet
@@ -238,7 +237,6 @@ public class Floor implements Runnable {
 	      // print the reply packet received from the scheduler
 	      System.out.println("Floor: Acknowledgement Packet received from scheduler:");
 	      System.out.println("Containing: " + new String(receiveAckPacket.getData(),0,receiveAckPacket.getLength()));
-	      System.out.println("Containing in bytes: " + Arrays.toString(receiveAckPacket.getData()).trim());
 		      		      		      		      		      		      	
 		  // close the sockets once done
 		  //socket.close();

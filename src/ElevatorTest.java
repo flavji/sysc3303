@@ -16,15 +16,15 @@ import org.junit.jupiter.api.Test;
  */
 class ElevatorTest {
 
-	Scheduler s = new Scheduler();
-	Elevator e = new Elevator(s, 23);
-	FloorData fd = new FloorData(5);
+	static int portNumber = 8000;
+	Elevator e;
 	
 	/**
 	 * @throws java.lang.Exception
 	 */
 	@BeforeEach
 	void setUp() throws Exception {
+		e = new Elevator(portNumber++);
 	}
 
 	/**
@@ -33,98 +33,39 @@ class ElevatorTest {
 	@AfterEach
 	void tearDown() throws Exception {
 	}
-
-	/**
-	 * Tests the notifyElevatorToScheduler method.
-	 */
-	@Test
-	void testNotifyElevatorToScheduler() {
-		assertEquals(e.notifyElevatorToScheduler(), 1);
-		assertEquals(s.getSchedulerToElevatorCondition(), 0);
-	}
 	
-	/**
-	 * Tests the executeRequest method if the elevator is going up.
-	 * @throws IOException 
-	 */
 	@Test
-	void testExecuteRequestUp() throws IOException {
-		fd.setInitialFloor(0);
-		fd.setDestinationFloor(5);
-		assertTrue(e.executeRequest(fd));
-	}
-	
-	/**
-	 * Tests the executeRequest method if the elevator is going up but cannot go up.
-	 * @throws IOException 
-	 */
-	@Test
-	void testExecuteRequestUpFail() throws IOException {
-		fd.setInitialFloor(0);
-		fd.setDestinationFloor(1);
-		assertFalse(e.executeRequest(fd));
-	}
-	
-	/**
-	 * Tests the executeRequest method if the elevator is going down.
-	 * @throws IOException 
-	 */
-	@Test
-	void testExecuteRequestDown() throws IOException {		
-		fd.setInitialFloor(3);
-		fd.setDestinationFloor(1);
-		assertTrue(e.executeRequest(fd));
-	}
-	
-	/**
-	 * Tests the executeRequest method if the elevator is going down but cannot go down.
-	 * @throws IOException 
-	 */
-	@Test
-	void testExecuteRequestDownFails() throws IOException {		
-		fd.setInitialFloor(4);
-		fd.setDestinationFloor(3);
-		assertFalse(e.executeRequest(fd));
-	}
-	
-	/**
-	 * Tests the executeRequest method if the elevator is going down after going up.
-	 * @throws IOException 
-	 */
-	@Test
-	void testExecuteRequestUpDown() throws IOException {
-		fd.setInitialFloor(0);
-		fd.setDestinationFloor(5);
-		e.executeRequest(fd);
+	void testHandleDoors() {
+		System.out.println("\nTesting handling of doors (Time exceeds 10 seconds to open/close doors): \n");
+		// Time exceeds 10 seconds to open/close doors
+		e.setTimeHandleDoors(15000);
+		e.setCurrentFloor(2);
 		
-		fd.setInitialFloor(5);
-		fd.setDestinationFloor(3);
-		assertTrue(e.executeRequest(fd));
-	}
-	
-	/**
-	 * Tests the executeRequest method if the elevator is going up after going down.
-	 * @throws IOException 
-	 */
-	@Test
-	void testExecuteRequestDownUp() throws IOException {
-		fd.setInitialFloor(2);
-		fd.setDestinationFloor(1);
-		e.executeRequest(fd);
+		assertFalse(e.handleDoors());
 		
-		fd.setInitialFloor(1);
-		fd.setDestinationFloor(3);
-		assertTrue(e.executeRequest(fd));
+		System.out.println("\nTesting handling of doors 2 (Time doesn't exceed 10 seconds, so successfully opens/closes doors): \n");
+		// Time doesn't exceed 10 seconds, so successfully opens/closes doors
+		e.setTimeHandleDoors(2500);
+		e.setCurrentFloor(2);
+		
+		assertTrue(e.handleDoors());			
 	}
 	
-	/**
-	 * Tests the executeRequest method if the elevator cannot go anywhere.
-	 * @throws IOException 
-	 */
 	@Test
-	void testExecuteRequestSame() throws IOException {
-		fd.setInitialFloor(0);
-		fd.setDestinationFloor(2);
-		assertFalse(e.executeRequest(fd));
+	void testMoveElevator() {
+		System.out.println("\nTesting moving between floors (Time exceeds 20 seconds to move from one floor to another): \n");
+		// Time exceeds 20 seconds to move from one floor to another
+		e.setTimeBetweenFloors(22000);
+		e.setCurrentFloor(2);
+		
+		assertFalse(e.moveElevator(5));
+		
+		System.out.println("\nTesting moving between floors (Time doesn't exceed 20 seconds, so successfully goes to the destination floor): \n");
+		// Time doesn't exceed 20 seconds, so successfully goes to the destination floor
+		e.setTimeBetweenFloors(10000);
+		e.setCurrentFloor(2);
+		
+		assertTrue(e.moveElevator(4));
 	}
+	
 }
