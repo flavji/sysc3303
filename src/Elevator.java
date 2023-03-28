@@ -62,30 +62,63 @@ public class Elevator implements Runnable {
 	    }						
 	}
 	
+	/**
+	 * Testing purposes - tests floor fault
+	 * Sets the time it takes to go from one floor to another
+	 * @param time	an int, the time it takes to go from one floor to another
+	 */
     public void setTimeBetweenFloors(int time) {
         this.timeBetweenFloors = time;
     }
 
+    /**
+     * Testing purposes
+     * Gets the time it takes to go from one floor to another
+     * @return	an int, the time it takes to go from one floor to another
+     */
     public int getTimeBetweenFloors() {
         return this.timeBetweenFloors;
     }
     
+    /**
+     * Testing purposes - tests door fault
+     * Sets the time it takes to open/close doors
+     * @param time	an int, the time it takes to open/close doors
+     */
     public void setTimeHandleDoors(int time) {
         this.timeHandleDoors = time;
     }
 
+    /**
+     * Gets the time it takes to open/close doors
+     * @return	an int, the time it takes to open/close doors
+     */
     public int getTimeHandleDoors() {
         return this.timeHandleDoors;
     }
     
+    /**
+     * Gets the port number of the current elevator
+     * @return	an int, the port number of the current elevator
+     */
 	public int getPortNumber() {
 		return this.portNumber;
 	}	
 	
+	/**
+	 * Gets the state of the current elevator
+	 * @return	an int, the state of the current elevator
+	 */
 	public int getState() {
 		return this.state;
 	}
 	
+	/**
+	 * Sets the state of the current elevator
+	 * Scheduler uses this method to set the appropriate state for the elevator, 
+	 * so it can send the right request to the correct elevator (Elevator 1 or Elevator 2)
+	 * @param state
+	 */
 	public void setState(int state) {
 		this.state = state;
 	}
@@ -116,27 +149,25 @@ public class Elevator implements Runnable {
 	public int getQueueSize() { return destinationFloors.size(); }
 	
 	/**
-	 * Adds destination floors to queue based on most efficient position.
-	 * 
+	 * Adds destination floors to a separate queue called destinationFloors
 	 * @param destinationFloor The destination floor of the given request.
 	 */
-	public void addDestination(int destinationFloor, int position) {
+	public void addDestination(int destinationFloor) {
 		destinationFloors.add(destinationFloor);// need to implement the position as well
 	}
 	
 	/**
-	 * Adds initial floors to queue 
+	 * Adds initial floors to a separate queue called initialFloors
 	 * @param initialFloor		the initial Floor of the given request
-	 * @param position
 	 */
-	public void addInitial(int initialFloor, int position) {
+	public void addInitial(int initialFloor) {
 		initialFloors.add(initialFloor);// need to implement the position as well
 	}
 	
 	/**
 	 * Executes the request received from the scheduler
-	 * @param initialFloors
-	 * @param destinationFloors
+	 * @param initialFloors		a queue of the initial floors the elevator needs to go to, so it can pick up passengers
+	 * @param destinationFloors		a queue of the destination floors the elevator needs to go to, so it can drop off passengers
 	 */
 	private void executeRequest(Collection<Integer> initialFloors, Collection<Integer> destinationFloors) {
 	    Iterator<Integer> initialIterator = initialFloors.iterator();
@@ -149,6 +180,7 @@ public class Elevator implements Runnable {
 	        // check if the elevator is already on the initial floor
 	        if (currentFloor != initialFloor) {
         		// move the elevator to the initial floor and open its doors to let passengers in
+	        	System.out.println("\n" + Thread.currentThread().getName() + " needs to go to floor: " + initialFloor + " to pick up passengers.");
 	            if(!moveElevator(initialFloor)) {
 	            	// If there is a permanent door fault (even after retrying), set the elevator state to "out of service"
 	                this.state = 7;
@@ -167,6 +199,7 @@ public class Elevator implements Runnable {
 	            }	            
 	        }
 
+	        System.out.println("\n" + Thread.currentThread().getName() + " needs to go to floor: " + destinationFloor + " to drop off passengers.");
 	        // move the elevator to the destination floor and open its doors to let passengers out
             if(!moveElevator(destinationFloor)) {
             	// If there is a permanent door fault (even after retrying), set the elevator state to "out of service"
@@ -192,9 +225,10 @@ public class Elevator implements Runnable {
 	}
 
 	/**
-	 * 
-	 * @param destinationFloor
-	 * @return
+	 * Move the elevator to the specified floor
+	 * @param destinationFloor		an Integer, the floor the elevator needs to go to from its current floor
+	 * @return	a boolean, true if elevator successfully moves from the current floor to the destination floor, false otherwise
+	 * This method returns false if a floor fault occurs, true otherwise
 	 */
 	public boolean moveElevator(Integer destinationFloor) {
 	    int direction = destinationFloor.compareTo(currentFloor);
@@ -236,8 +270,8 @@ public class Elevator implements Runnable {
 	}
 
 	/**
-	 * 
-	 * @return
+	 * Opens and closes doors of the elevator 
+	 * @return 	a boolean, true if the doors close successfully, false if a door fault occurs
 	 */
 	public boolean handleDoors() {
 	    // simulate doors opening and closing	    
@@ -347,8 +381,8 @@ public class Elevator implements Runnable {
 		    	 
 		    	//add to the queue, need to change this if condition
                  if(arrValues2[0] != null && arrValues2.length == 4 ) {
-                	 addInitial(Integer.parseInt(arrValues2[1]), getCurrentFloor());
-                     addDestination(Integer.parseInt(arrValues2[3]), getCurrentFloor());
+                	 addInitial(Integer.parseInt(arrValues2[1]));
+                     addDestination(Integer.parseInt(arrValues2[3]));
                  }
 		    	 System.out.println(Thread.currentThread().getName() + " processing request: Initial floor = " + arrValues2[1].toString() + " and Destination Floor = " + arrValues2[3].toString());
 		     }

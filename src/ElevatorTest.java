@@ -18,6 +18,8 @@ class ElevatorTest {
 
 	static int portNumber = 8000;
 	Elevator e;
+	Scheduler s;
+	FloorData fd;
 	
 	/**
 	 * @throws java.lang.Exception
@@ -25,6 +27,8 @@ class ElevatorTest {
 	@BeforeEach
 	void setUp() throws Exception {
 		e = new Elevator(portNumber++);
+		s = new Scheduler();
+		fd = new FloorData(5);
 	}
 
 	/**
@@ -66,6 +70,22 @@ class ElevatorTest {
 		e.setCurrentFloor(2);
 		
 		assertTrue(e.moveElevator(4));
+	}
+
+	@Test
+	void testGetCurrentFloor() {
+		assertEquals(2, e.getCurrentFloor());
+	}
+
+	@Test
+	void testSetCurrentFloor() {
+		e.setCurrentFloor(5);
+		assertEquals(5, e.getCurrentFloor());
+	}
+
+	@Test
+	void testGetQueueSize() {
+		assertEquals(0, e.getQueueSize());
 	}
 	
 }

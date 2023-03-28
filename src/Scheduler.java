@@ -97,7 +97,7 @@ public class Scheduler implements Runnable {
 	 * Adds to queue by parsing the packet it received from the floor
 	 * @param arr	a String, the set of requests separated by a "/" that the scheduler received from the Floor
 	 */
-	private void parsePacket(String arr) {
+	public void parsePacket(String arr) {
         String data = arr;
 
         String[] arrValues = data.split("/");
@@ -140,7 +140,13 @@ public class Scheduler implements Runnable {
         }
     }
 	
-	private int checkServiceableRequest(FloorData fd) {
+	/**
+	 * Assigns the appropriate request to the appropriate elevator based off which elevator is stationary
+	 * and what floors the elevators are currently at
+	 * @param fd	a FloorData Object, the information of the request
+	 * @return	an int, the port number of the elevator that the request gets assigned to
+	 */
+	public int checkServiceableRequest(FloorData fd) {
 		// Calculate the distance between each elevator and the requested floor
 	    int distElevator1 = Math.abs(elevators.get(0).getCurrentFloor() - fd.getInitialFloor());
 	    int distElevator2 = Math.abs(elevators.get(1).getCurrentFloor() - fd.getInitialFloor());
@@ -162,12 +168,21 @@ public class Scheduler implements Runnable {
 	    
 	    // Check if one elevator is available and the other is moving in the same direction
 	    if (elevators.get(0).getState() == 0 && elevators.get(1).getState() != 0) {
+	    	// if second elevator is currently moving (going up or going down), then
+	    	// we want to set the state of the first elevator based on the destination floor
+	    	// if the destination floor is less than the current floor of the first elevator, then set its state to moving down
+	    	// if the destination floor is greater than the current floor of the first elevator, then set its state to moving up
 	        if ((elevators.get(1).getState() == 1 && fd.getFloorButton().equals("up")) ||
 	                (elevators.get(1).getState() == 2 && fd.getFloorButton().equals("down"))) {
 	        	elevators.get(0).setState(fd.getDestinationFloor() < elevators.get(0).getCurrentFloor() ? 2 : 1);
 	            return 5000;
 	        }
-	    } else if (elevators.get(1).getState() == 0 && elevators.get(0).getState() != 0) {
+	    } 
+	    else if (elevators.get(1).getState() == 0 && elevators.get(0).getState() != 0) {
+	    	// if first elevator is currently moving (going up or going down), then
+	    	// we want to set the state of the second elevator based on the destination floor
+	    	// if the destination floor is less than the current floor of the second elevator, then set its state to moving down
+	    	// if the destination floor is greater than the current floor of the second elevator, then set its state to moving up 
 	        if ((elevators.get(0).getState() == 1 && fd.getFloorButton().equals("up")) ||
 	                (elevators.get(0).getState() == 2 && fd.getFloorButton().equals("down"))) {
 	            elevators.get(1).setState(fd.getDestinationFloor() < elevators.get(1).getCurrentFloor() ? 2 : 1);
@@ -175,60 +190,27 @@ public class Scheduler implements Runnable {
 	        }
 	    }
 	    
-	    // Check if one elevator is available and the other is moving in the opposite direction
+	    // Check if no elevators are available, then assign the request based off which elevator is closer to the request
 	    if (elevators.get(0).getState() != 0 && elevators.get(1).getState() != 0) {
+	    	elevatorsAvailable = false;		// No serviceable elevators available
 	        if ((elevators.get(0).getState() == 1 && elevators.get(1).getState() == 2 && fd.getFloorButton().equals("down")) ||
 	                (elevators.get(0).getState() == 2 && elevators.get(1).getState() == 1 && fd.getFloorButton().equals("up"))) {
+	        	// if the first elevator is moving up and the second elevator is moving down (and the request involves going down)
+	        	// OR if the first elevator is moving down and the second elevator is moving up (and the request involves going up)
+	        	// then assign request based on the distance of each elevator
 	            if (distElevator1 <= distElevator2) {
+	            	// if elevator one is closer to the request, assign it to elevator one
 	                elevators.get(0).setState(fd.getDestinationFloor() < elevators.get(0).getCurrentFloor() ? 2 : 1);
 	                return 5000;
 	            } else {
+	            	// if elevator two is closer to the request, assign it to elevator two
 	                elevators.get(1).setState(fd.getDestinationFloor() < elevators.get(1).getCurrentFloor() ? 2 : 1);
 	                return 6000;
 	            }
 	        }
 	    }
-	    
-	    elevatorsAvailable = false;
-	    // No serviceable elevators available
 	    return portNumber;
 	}
-//	/**
-//	 * Checks whether the request is serviceable at the moment
-//	 * @param fd	a FloorData object, the request that needs to be serviced
-//	 * @return	an int, port number of elevator we are sending the request to
-//	 */
-//	public int checkServiceableRequest(FloorData fd) {
-//		int currentFloorElevator1 = elevators.get(0).getCurrentFloor();
-//		int currentFloorElevator2 = elevators.get(1).getCurrentFloor();
-//		
-//		System.out.println("Current State elevator 1: " + elevators.get(0).getState());
-//		System.out.println("Current State elevator 2: " + elevators.get(1).getState());
-//		
-//		
-//		if(elevators.get(0).getState() == 0 && elevators.get(1).getState() == 0) {
-//			// both are stationary - give it elevator one
-//			
-//			elevators.get(0).setState(1);
-//			portNumber = 5000;
-//		} else if (elevators.get(0).getState() != 0 && elevators.get(1).getState() == 0) {
-//			// second elevator stationary - give it elevator 2
-//
-//			elevators.get(1).setState(1);
-//			portNumber = 6000;
-//		} else if (elevators.get(0).getState() == 0 && elevators.get(1).getState() != 0) {
-//		    // first elevator stationary - give it elevator 1
-//			
-//			elevators.get(0).setState(1);
-//		    portNumber = 5000;
-//		} else if (elevators.get(0).getState() != 0 && elevators.get(1).getState() != 0) {
-//			return 6000;
-//		}
-//		
-//		System.out.println("\nELEVATOR NUMBER: " + portNumber);
-//		return portNumber;
-//	}
-//		
 	
 	/**
 	 * Send and receive DatagramPackets to/from floor 
@@ -290,10 +272,10 @@ public class Scheduler implements Runnable {
 				      System.out.println("Scheduler: Reply Packet sent to Floor:");
 				      System.out.println("Containing: " + new String(sendPacketFloor.getData(),0,sendPacketFloor.getLength()));
 //				      if(elevators.get(0).getState() == 0 || elevators.get(1).getState() == 0) {
-				          Thread thread = new Thread(() -> {
-				                sendReceiveElevator();
-				            });
-				          thread.start();
+			          Thread thread = new Thread(() -> {
+			                sendReceiveElevator();
+			            });
+			          thread.start();
 				      //}
 
 				      
@@ -330,7 +312,7 @@ public class Scheduler implements Runnable {
 			   }
 			  
 				    
-			      }
+}
 			      
 			      
 			      		
