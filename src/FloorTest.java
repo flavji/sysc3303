@@ -59,11 +59,25 @@ class FloorTest {
         f.delete();
     }
 
+    @Test
+    void testaddTimes() {
+    	
+		//parsePacket test
+    	System.out.println("\nTesting addTimes");
+    	Floor floor = new Floor(floorRequests);
+    	floor.addTimes();
+    	
+    	assertEquals(1, floor.getTimes().size());
+    	
+    	
+    }
     /**
      * Test the unwrapData() method to ensure that it reads and parses the CSV file correctly.
      */
     @Test
     void testUnwrapData() {
+    	
+    	System.out.println("Testing unwrapData ");
         Floor floor = new Floor(floorRequests);
         floor.unwrapData();
 
@@ -100,6 +114,8 @@ class FloorTest {
      */
     @Test
     void testRun() {
+    	
+    	System.out.println("\nTesting run");
         Floor floor = new Floor(floorRequests);
         Thread t1 = new Thread(floor);
 
@@ -115,6 +131,9 @@ class FloorTest {
      */
     @Test
     void testSetFloorData() throws IOException, ParseException {
+    	
+    	System.out.println("\nTesting setFloorData");
+    	
         Floor floor = new Floor(floorRequests);
         floor.unwrapData();
 

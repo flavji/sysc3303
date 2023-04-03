@@ -98,6 +98,10 @@ public class Floor implements Runnable {
 
 	}
 	
+	public ArrayList getTimes() {
+		return this.times;
+	}
+	
 	// Check which request is the first one based on the wall clock time
 	// the request that has the smallest time in the CSV file is going to run first
 	// implement selectRequest() method (don't need to create a new method - we can modify unwrapData() method)

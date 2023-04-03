@@ -27,7 +27,6 @@ class ElevatorTest {
 	@BeforeEach
 	void setUp() throws Exception {
 		e = new Elevator(portNumber++);
-		s = new Scheduler();
 		fd = new FloorData(5);
 	}
 
@@ -36,33 +35,33 @@ class ElevatorTest {
 	 */
 	@AfterEach
 	void tearDown() throws Exception {
+		
 	}
 	
 	@Test
-	void testHandleDoors() {
-		System.out.println("\nTesting handling of doors (Time exceeds 10 seconds to open/close doors): \n");
-		// Time exceeds 10 seconds to open/close doors
-		e.setTimeHandleDoors(15000);
-		e.setCurrentFloor(2);
+	void testHandleDoorsSuccess() {
 		
-		assertFalse(e.handleDoors());
-		
-		System.out.println("\nTesting handling of doors 2 (Time doesn't exceed 10 seconds, so successfully opens/closes doors): \n");
+		System.out.println("\nTesting handling of doors  (Time doesn't exceed 10 seconds, so successfully opens/closes doors): \n");
 		// Time doesn't exceed 10 seconds, so successfully opens/closes doors
 		e.setTimeHandleDoors(2500);
 		e.setCurrentFloor(2);
 		
-		assertTrue(e.handleDoors());			
+		assertTrue(e.handleDoors());	
 	}
 	
 	@Test
-	void testMoveElevator() {
-		System.out.println("\nTesting moving between floors (Time exceeds 20 seconds to move from one floor to another): \n");
-		// Time exceeds 20 seconds to move from one floor to another
-		e.setTimeBetweenFloors(22000);
+	void testHandleDoorsFailure() {
+		
+		System.out.println("\nTesting handling of doors (Time exceeds 10 seconds to open/close doors): \n");
+		// Time exceeds 10 seconds to open/close doors
+		e.setTimeHandleDoors(12000);
 		e.setCurrentFloor(2);
 		
-		assertFalse(e.moveElevator(5));
+		assertFalse(e.handleDoors());
+	}
+	
+	@Test
+	void testmoveElevatorSuccess() {
 		
 		System.out.println("\nTesting moving between floors (Time doesn't exceed 20 seconds, so successfully goes to the destination floor): \n");
 		// Time doesn't exceed 20 seconds, so successfully goes to the destination floor
@@ -70,6 +69,19 @@ class ElevatorTest {
 		e.setCurrentFloor(2);
 		
 		assertTrue(e.moveElevator(4));
+		
+	}
+	
+	@Test
+	void testmoveElevatorFailure() {
+		
+		System.out.println("\nTesting moving between floors (Time exceeds 20 seconds to move from one floor to another): \n");
+		// Time exceeds 20 seconds to move from one floor to another
+		e.setTimeBetweenFloors(22000);
+		e.setCurrentFloor(2);
+		
+		assertFalse(e.moveElevator(5));
+		
 	}
 
 	@Test
