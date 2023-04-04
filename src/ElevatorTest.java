@@ -18,8 +18,8 @@ class ElevatorTest {
 
 	static int portNumber = 8000;
 	Elevator e;
-	Scheduler s;
-	FloorData fd;
+//	Scheduler s;
+//	FloorData fd;
 	
 	/**
 	 * @throws java.lang.Exception
@@ -27,8 +27,8 @@ class ElevatorTest {
 	@BeforeEach
 	void setUp() throws Exception {
 		e = new Elevator(portNumber++);
-		s = new Scheduler();
-		fd = new FloorData(5);
+//		s = new Scheduler();
+//		fd = new FloorData(5);
 	}
 
 	/**
