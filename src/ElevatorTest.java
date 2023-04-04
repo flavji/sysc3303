@@ -72,6 +72,7 @@ class ElevatorTest {
 		assertTrue(e.moveElevator(4));
 	}
 
+	// test
 	@Test
 	void testGetCurrentFloor() {
 		assertEquals(2, e.getCurrentFloor());
