@@ -30,6 +30,10 @@ public class Floor implements Runnable {
 	private DatagramPacket sendPacket, receivePacket, receiveAckPacket;
 	private DatagramSocket replySocket, acknowledgementSocket;
 	private ArrayList<Date> times;
+	private int pendingRequests;
+	private long startTime;
+	private long endTime;
+	private long elapsedTime;
 	
 	// One request at a time from the floor goes to the scheduler -> elevator > scheduler then back to floor
 	// Use arrival times to send the requests
@@ -59,6 +63,7 @@ public class Floor implements Runnable {
 	public Floor(String floorRequests) {
 		this.floorRequests = floorRequests;
 		this.times = new ArrayList<Date>();
+		this.pendingRequests = 0;
 		 
 	}
 	
@@ -110,8 +115,12 @@ public class Floor implements Runnable {
 
 		    String line = "";
 		    int lineNumber = 1;
+		    // Record start time
+		    startTime = System.currentTimeMillis();
+		    System.out.println("System Start Time (current time in milliseconds): " + startTime + " ms");
 		    while ((line = br.readLine()) != null)   //returns a Boolean value
 		    {
+		    	pendingRequests++;
 		    	String[] elevatorData = new String[4];
 			    elevatorData = line.split(",");
 			
@@ -130,13 +139,10 @@ public class Floor implements Runnable {
 	                sendReceive();
 	            });
 	            thread.start();
-			    //sendReceive();
-//	            thread.start();
 			    long time = 0;
 	            if (lineNumber < times.size()) {
 	                time = times.get(lineNumber).getTime() - times.get(lineNumber - 1).getTime();
 	            }
-			    System.out.println("TIME VALUE: " + time);
 			    try {
 			    	if(time == 0) {
 			    		Thread.sleep(1000);
@@ -148,9 +154,7 @@ public class Floor implements Runnable {
 				} catch (InterruptedException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
-				}
-			    
-			   
+				}			   
 			    
 		    }
 	    
@@ -161,7 +165,7 @@ public class Floor implements Runnable {
 			e.printStackTrace();
 		}
 	}
-	//
+	
 	   // method to listen for packets from the Scheduler
 	   public void listenForSchedulerPackets(int port) {
 		   
@@ -177,8 +181,17 @@ public class Floor implements Runnable {
 			      while (true) {
 			         try {
 						schedulerSocket.receive(receivePacket);
-					    System.out.println("Floor: Acknowledgement Packet received from scheduler:");
+					    System.out.println("\nFloor: Acknowledgement Packet received from scheduler:");
 				        System.out.println("Containing: " + new String(receivePacket.getData(),0,receivePacket.getLength()));
+				        pendingRequests--;
+				        
+				        if(pendingRequests == 0) {
+				        	endTime = System.currentTimeMillis();
+				        	System.out.println("\nSystem End Time (current time in milliseconds): " + endTime + " ms");
+				        	elapsedTime = endTime - startTime;
+				        	System.out.println("\nThe system took " + elapsedTime + " ms to run the entire input file.");
+				        	System.exit(1);
+				        }
 					} catch (IOException e) {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
@@ -186,10 +199,8 @@ public class Floor implements Runnable {
 			      }
 			      
 			} catch (SocketException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
-			} // use port 24 since that's what the Scheduler is using
-
+			} 
 		   };
 	        new Thread(floorReceiver).start();
 	   }
@@ -225,7 +236,7 @@ public class Floor implements Runnable {
 	        }
 	        
 	        //print the sent packet
-	        System.out.println("Floor: Data Request Packet sent to scheduler:");
+	        System.out.println("\nFloor: Request sent to scheduler");
 	        System.out.println("Containing: " + new String(sendPacket.getData(),0,sendPacket.getLength()));
 	        
 	        
@@ -234,7 +245,7 @@ public class Floor implements Runnable {
 	        
 	        //receive the reply packet from the scheduler
 	        try {        
-	            System.out.println("Waiting..."); // so we know we're waiting
+	            System.out.println("Floor: Waiting for reply from Scheduler..."); // so we know we're waiting
 	            replySocket.receive(receivePacket);
 	            
 	        } catch (IOException e) {
@@ -245,7 +256,7 @@ public class Floor implements Runnable {
 	        }
 	        
 	        // print the reply packet received from the scheduler
-	        System.out.println("\nFloor: Reply Packet received from scheduler:");
+	        System.out.println("Floor: Reply Packet received from scheduler:");
 	        System.out.println("Containing: " + new String(receivePacket.getData(),0,receivePacket.getLength()));
 	        
 	        replySocket.close();
@@ -289,8 +300,6 @@ public class Floor implements Runnable {
 		// wrapping floorData to String
 		csvRequests = fdPacket.getTime() + "," + fdPacket.getInitialFloor() + "," + fdPacket.getFloorButton() + "," + fdPacket.getDestinationFloor();
 //		csvRequests = csvRequests.concat(fdPacket.getTime() + "," + fdPacket.getInitialFloor() + "," + fdPacket.getFloorButton() + "," + fdPacket.getDestinationFloor() + "/");
-     
-		System.out.println(csvRequests);
 	}
 	
 	public static void main(String args[])
