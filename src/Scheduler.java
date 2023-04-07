@@ -36,6 +36,7 @@ public class Scheduler implements Runnable {
 	private int portNumber;
 	private Object lock = new Object();
 	private volatile boolean elevatorsAvailable = true;
+	private ElevatorGUI gui;
 	
 	DatagramPacket receivePacketFloor, receiveAcknowledgementFloor, receivePacketElevatorOne, receivePacketElevatorTwo, receivePacketElevatorThree,
 	receivePacketElevatorFour, sendPacketFloor, sendPacketElevator1, sendPacketElevator2, sendPacketElevator3, sendPacketElevator4, sendAckPacketFloor;
@@ -60,6 +61,10 @@ public class Scheduler implements Runnable {
 		elevators.add(new Elevator(portNumbers[1], "Elevator Two"));
 		elevators.add(new Elevator(portNumbers[2], "Elevator Three"));
 		elevators.add(new Elevator(portNumbers[3], "Elevator Four"));
+		elevators.get(0).gui.closeGUI();
+		elevators.get(1).gui.closeGUI();
+		elevators.get(2).gui.closeGUI();
+		elevators.get(3).gui.closeGUI();
 		
 		try {
 	         floorSocket = new DatagramSocket(23);
@@ -158,15 +163,23 @@ public class Scheduler implements Runnable {
                     if (elevator.equals("Elevator One")) {
                         elevators.get(0).setCurrentFloor(floor);
                         elevators.get(0).setState(state);
+//                    	gui.updateElevatorFloor(floor);
+//                    	gui.updateElevatorStatus(state);
                     } else if (elevator.equals("Elevator Two")) {
                     	elevators.get(1).setCurrentFloor(floor);
                     	elevators.get(1).setState(state);
+//                    	gui.updateElevatorFloor(floor);
+//                    	gui.updateElevatorStatus(state);
                     } else if (elevator.equals("Elevator Three")) {
                     	elevators.get(2).setCurrentFloor(floor);
                     	elevators.get(2).setState(state);
+//                    	gui.updateElevatorFloor(floor);
+//                    	gui.updateElevatorStatus(state);
                     } else if (elevator.equals("Elevator Four")) {
                     	elevators.get(3).setCurrentFloor(floor);
                     	elevators.get(3).setState(state);
+//                    	gui.updateElevatorFloor(floor);
+//                    	gui.updateElevatorStatus(state);
                     }
                 }
             } catch (Exception e) {
