@@ -33,10 +33,10 @@ public class Scheduler implements Runnable {
 	private boolean floorRequestReceived;
 	private int[] portNumbers = new int[5];
 	private String elevatorAck = "";
-	private int portNumber;
 	private Object lock = new Object();
 	private volatile boolean elevatorsAvailable = true;
 	private ElevatorGUI gui;
+	private boolean shouldRequestUpdate = true;
 	
 	DatagramPacket receivePacketFloor, receiveAcknowledgementFloor, receivePacketElevatorOne, receivePacketElevatorTwo, receivePacketElevatorThree,
 	receivePacketElevatorFour, sendPacketFloor, sendPacketElevator1, sendPacketElevator2, sendPacketElevator3, sendPacketElevator4, sendAckPacketFloor;
@@ -114,7 +114,7 @@ public class Scheduler implements Runnable {
         String[] arrValues = data.split("/");
 
         for(int i = 0; i < arrValues.length ; i++) {
-        	FloorData fd = new FloorData(10);
+        	FloorData fd = new FloorData(22);
 
             String[] arrValues2 = arrValues[i].split(",");
 
@@ -206,14 +206,15 @@ public class Scheduler implements Runnable {
 //		
 //    	System.out.println("Current STATE elevator 1: " + elevators.get(0).getState());
 //		System.out.println("Current STATE elevator 2: " + elevators.get(1).getState());
-				
+		
+		// first case: go through the elevators and assign the request to the elevator that is stationary
 		boolean elevatorFound = false;
 		int minDist = Integer.MAX_VALUE;
 		int elevatorIdx = -1;
 		for(int elevatorNumber = 0; elevatorNumber < 4; elevatorNumber++) {
 			if(elevators.get(elevatorNumber).getState() == 0) {
 				elevatorFound = true;
-				int dist = Math.abs(fd.getDestinationFloor() - elevators.get(elevatorNumber).getCurrentFloor());
+				int dist = Math.abs(fd.getInitialFloor() - elevators.get(elevatorNumber).getCurrentFloor());
 				if(dist < minDist) {
 					minDist = dist;
 					elevatorIdx = elevatorNumber;
@@ -221,64 +222,59 @@ public class Scheduler implements Runnable {
 			}
 		}
 		if (elevatorFound) {
+			System.out.println("ELEVATOR NUMBER: " + elevatorIdx);
 			elevators.get(elevatorIdx).setState(fd.getDestinationFloor() < elevators.get(elevatorIdx).getCurrentFloor() ? 2 : 1);
 		    return 5000 + (elevatorIdx * 1000);
 		}
 	    	    
+		// 2, 8 - elevator one
+		// 1, 5 - elevator two
+		
+		// 3, 6
+	
+		// if fd.getFloorButton() 
+		// second case: all the elevators are moving
+		// if the received request is between the initial floor and the destination floor
 	    // Check if no elevators are available
-	    if (elevators.get(0).getState() != 0 && elevators.get(1).getState() != 0 &&
-	    	    elevators.get(2).getState() != 0 && elevators.get(3).getState() != 0) {
-	    	
-	    	// All elevators are moving up
-	    	if ((elevators.get(0).getState() == 1 && elevators.get(1).getState() == 1 &&
-	    	         elevators.get(2).getState() == 1 && elevators.get(3).getState() == 1)) {
-	        	
-		    	// request lies between initial floor and destination floor
-		    	// and initial floor of request is greater than the current floor the elevator is currently on
-		    	// then we want to assign it to the appropriate elevator
-	        	if(fd.getInitialFloor() >= elevators.get(0).getCurrentRequest().getInitialFloor() &&
-	        			   fd.getInitialFloor() > elevators.get(0).getCurrentFloor() &&
-	        			   fd.getInitialFloor() <= elevators.get(0).getCurrentRequest().getDestinationFloor()) {
-	        		return 5000;
-	        	} else if (fd.getInitialFloor() >= elevators.get(1).getCurrentRequest().getInitialFloor() &&
-	        			   fd.getInitialFloor() > elevators.get(1).getCurrentFloor() &&
-	        			   fd.getInitialFloor() <= elevators.get(1).getCurrentRequest().getDestinationFloor()) {
-	        		return 6000;
-	        	} else if (fd.getInitialFloor() >= elevators.get(2).getCurrentRequest().getInitialFloor() &&
-	                    fd.getInitialFloor() > elevators.get(2).getCurrentFloor() &&
-	                    fd.getInitialFloor() <= elevators.get(2).getCurrentRequest().getDestinationFloor()) {
-	        		return 7000;
-	        	} else if (fd.getInitialFloor() >= elevators.get(3).getCurrentRequest().getInitialFloor() &&
-	                    fd.getInitialFloor() > elevators.get(3).getCurrentFloor() &&
-	                    fd.getInitialFloor() <= elevators.get(3).getCurrentRequest().getDestinationFloor()) {
-	        		return 8000;
-	        	}
-	        }
-	        
-	    	// All elevators are moving down
-	    	if ((elevators.get(0).getState() == 2 && elevators.get(1).getState() == 2 && elevators.get(2).getState() == 2 && elevators.get(3).getState() == 2)) {	    	    
-	    	    // Check if request lies between initial floor and destination floor and initial floor is less than the current floor
-	    	    if (fd.getInitialFloor() >= elevators.get(0).getCurrentRequest().getInitialFloor() && 
-	    	        fd.getInitialFloor() < elevators.get(0).getCurrentFloor() && 
-	    	        fd.getInitialFloor() <= elevators.get(0).getCurrentRequest().getDestinationFloor()) {
-	    	        return 5000;
-	    	    } else if (fd.getInitialFloor() >= elevators.get(1).getCurrentRequest().getInitialFloor() && 
-	    	               fd.getInitialFloor() < elevators.get(1).getCurrentFloor() && 
-	    	               fd.getInitialFloor() <= elevators.get(1).getCurrentRequest().getDestinationFloor()) {
-	    	        return 6000;
-	    	    } else if (fd.getInitialFloor() >= elevators.get(2).getCurrentRequest().getInitialFloor() && 
-	    	               fd.getInitialFloor() < elevators.get(2).getCurrentFloor() && 
-	    	               fd.getInitialFloor() <= elevators.get(2).getCurrentRequest().getDestinationFloor()) {
-	    	        return 7000;
-	    	    } else if (fd.getInitialFloor() >= elevators.get(3).getCurrentRequest().getInitialFloor() && 
-	    	               fd.getInitialFloor() < elevators.get(3).getCurrentFloor() && 
-	    	               fd.getInitialFloor() <= elevators.get(3).getCurrentRequest().getDestinationFloor()) {
-	    	        return 8000;
-	    	    }
-	    	}
-	    }
+		boolean allBusy = elevators.stream().allMatch(elevator -> elevator.getState() != 0);
+		if (allBusy) {
+			int closestElevator = -1;
+			int minDistance = Integer.MAX_VALUE;
+
+			int elevatorNumber;
+			// Find the elevator that is closest to the initial floor of the request
+			 for (elevatorNumber = 0; elevatorNumber < 4; elevatorNumber++) {
+			    Elevator elevator = elevators.get(elevatorNumber);
+			    boolean upDirection = fd.getInitialFloor() < fd.getDestinationFloor();
+			    boolean downDirection = fd.getInitialFloor() > fd.getDestinationFloor();
+
+			    if ((upDirection && elevator.getState() == 1) && fd.getInitialFloor() >= elevator.getInitialRequest().getInitialFloor() && 
+		                fd.getInitialFloor() > elevator.getCurrentFloor() && 
+		                fd.getInitialFloor() <= elevator.getInitialRequest().getDestinationFloor()) {
+			        int distance = fd.getInitialFloor() - elevator.getCurrentFloor();
+			        if (distance < minDistance) {
+			            closestElevator = elevatorNumber;
+			            minDistance = distance;
+			        }
+			    } else if ((downDirection && elevator.getState() == 2) && fd.getInitialFloor() >= elevator.getInitialRequest().getInitialFloor() && 
+	                       fd.getInitialFloor() < elevator.getCurrentFloor() && 
+	                       fd.getInitialFloor() <= elevator.getInitialRequest().getDestinationFloor()) {
+			        int distance = elevator.getCurrentFloor() - fd.getInitialFloor();
+			        if (distance < minDistance) {
+			            closestElevator = elevatorNumber;
+			            minDistance = distance;
+			        }
+			    }
+			}
+
+			// If a closest elevator is found, assign the request to it
+			if (closestElevator != -1) {
+				shouldRequestUpdate = false;
+			    return 5000 + (closestElevator * 1000);
+			}
+		}
     	elevatorsAvailable = false;		// No serviceable elevators available
-	    return portNumber;
+	    return 0;
 	}
 	
 	/**
@@ -373,15 +369,38 @@ public class Scheduler implements Runnable {
 	    }   
 	    System.out.println("Request to be Processed by the Elevator: " + new String(sendPacket.getData(),0,sendPacket.getLength()));
 	    
-	    if(portNumber == 5000) {
-	    	elevators.get(0).setCurrentRequest(allFloorRequests.element());
-	    } else if (portNumber == 6000) {
-	    	elevators.get(1).setCurrentRequest(allFloorRequests.element());
-	    } else if (portNumber == 7000) {
-	    	elevators.get(2).setCurrentRequest(allFloorRequests.element());
-	    } else if (portNumber == 8000) {
-	    	elevators.get(3).setCurrentRequest(allFloorRequests.element());
+	    int index = (portNumber - 5000) / 1000; // Calculate the index based on the port number
+
+	    if (shouldRequestUpdate) {
+	        elevators.get(index).setInitialRequest(allFloorRequests.element());
 	    }
+
+	    elevators.get(index).setCurrentRequest(allFloorRequests.element());
+
+	    shouldRequestUpdate = true;
+//	    if(shouldRequestUpdate) {
+//		    if(portNumber == 5000) {
+//		    	elevators.get(0).setInitialRequest(allFloorRequests.element());
+//		    } else if (portNumber == 6000) {
+//		    	elevators.get(1).setInitialRequest(allFloorRequests.element());
+//		    } else if (portNumber == 7000) {
+//		    	elevators.get(2).setInitialRequest(allFloorRequests.element());
+//		    } else if (portNumber == 8000) {
+//		    	elevators.get(3).setInitialRequest(allFloorRequests.element());
+//		    }
+//	    }
+//	    
+//	    if(portNumber == 5000) {
+//	    	elevators.get(0).setCurrentRequest(allFloorRequests.element());
+//	    } else if (portNumber == 6000) {
+//	    	elevators.get(1).setCurrentRequest(allFloorRequests.element());
+//	    } else if (portNumber == 7000) {
+//	    	elevators.get(2).setCurrentRequest(allFloorRequests.element());
+//	    } else if (portNumber == 8000) {
+//	    	elevators.get(3).setCurrentRequest(allFloorRequests.element());
+//	    }
+//
+//	    shouldRequestUpdate = true;
 	    
 	    FloorData currentRequestElevatorOne = elevators.get(0).getCurrentRequest();
 	    FloorData currentRequestElevatorTwo = elevators.get(1).getCurrentRequest();

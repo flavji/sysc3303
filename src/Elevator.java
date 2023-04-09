@@ -4,12 +4,14 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Objects;
 import java.util.PriorityQueue;
 import java.util.Queue;
@@ -36,11 +38,16 @@ public class Elevator implements Runnable {
 	private int timeHandleDoors;
 	private boolean doorFault;
 	private FloorData currentRequest;
+	private FloorData initialRequest;
 	private final Object lock = new Object();
 	private final String name;
 	private ConcurrentLinkedQueue<Pair<Integer, Integer>> floorsQueue;
 	private PriorityQueue<DestinationFloor> destinationFloors; 
+	private ConcurrentLinkedQueue<Pair<Integer, Integer>> executedRequests;
 	public ElevatorGUI gui;
+	private Integer initialFloor;
+	private Integer destinationFloor;
+	
 	
 	DatagramPacket sendPacket, receivePacket;
 	DatagramSocket socketScheduler, socketFloor;
@@ -51,13 +58,13 @@ public class Elevator implements Runnable {
 	 * 
 	 * @param s	A Scheduler object that is used to communicate between the two clients (i.e., floor and elevator).
 	 */
-	public Elevator(int portNumber, String name) {
-	
-		
+	public Elevator(int portNumber, String name) {		
 		this.floorsQueue = new ConcurrentLinkedQueue<>();
+		this.executedRequests = new ConcurrentLinkedQueue<>();
+		this.destinationFloors = new PriorityQueue<>(Comparator.comparingInt(DestinationFloor::getFloorNumber));
 		this.name = name;
 		this.state = 0; 
-		this.currentFloor = 2;
+//		this.currentFloor = 2;
 		// 0 (stationary), 1 (moving up), 2 (moving down), 3 (doors opening), 4 (doors closing), 5 (floor fault), 6 (door fault), 7 (out of service)
 		this.portNumber = portNumber;
 		this.doorFault = false;
@@ -151,6 +158,14 @@ public class Elevator implements Runnable {
 		return currentRequest;
 	}
 	
+	public void setInitialRequest(FloorData request) {
+		this.initialRequest = request;
+	}
+	
+	public FloorData getInitialRequest() {
+		return initialRequest;
+	}
+	
 	/**
 	 * Returns the current floor of the elevator.
 	 * 
@@ -190,28 +205,32 @@ public class Elevator implements Runnable {
     	boolean floorFault = false;
     	boolean doorFault = false;
         Pair<Integer, Integer> floorPair = floorsQueue.peek();
-        Integer initialFloor = floorPair.getFirst();
-        Integer destinationFloor = floorPair.getSecond();
-        floorsQueue.remove();
+        initialFloor = floorPair.getFirst();
+        destinationFloor = floorPair.getSecond();
+    	gui.updateLogArea(floorsQueue.peek());
+		if(Thread.currentThread().getName().equals("Elevator Two")) {
+    		System.out.println("LOG AREA UPDATED 0");
+		}
+    	executedRequests.add(floorPair);
 
         if(!floorPair.isExecuted()) {
         	// check if the elevator is already on the initial floor
             if (currentFloor != initialFloor && !floorPair.passengersPickedUp()) {
+            	System.out.println("METHOD BEING EXE");
                 // move the elevator to the initial floor and open its doors to let passengers in
                 System.out.println("\n" + Thread.currentThread().getName() + " needs to go to floor " + initialFloor + " to pick up passengers." );
                 gui.updateElevatorStatus(state);
-                if(!moveElevator(initialFloor)) {
+                if(!moveElevator(initialFloor, true)) {
                 	floorFault = true;
                 	gui.updateElevatorStatus(5);
                 	
-                	try {
-                		Thread.sleep(3000);
-                	}catch(Exception e) {
-                		System.out.println(Thread.currentThread().getName() + "'s movement was interrupted due to a floor fault");
-                	}
-                	
                     // If there is a permanent floor fault, set the elevator state to "out of service"
-                	if(!doorFault) {
+                	if(!this.doorFault) {
+                    	try {
+                    		Thread.sleep(3000);
+                    	}catch(Exception e) {
+                    		System.out.println(Thread.currentThread().getName() + "'s movement was interrupted due to a floor fault");
+                    	}
                 		System.out.println("\nThe elevator is out of service due to a floor fault. Shutting down at the next floor.");
                 		 gui.updateElevatorStatus(7);
                 	}
@@ -222,7 +241,7 @@ public class Elevator implements Runnable {
                    }
                 } else {
 	            	System.out.println("\n" + Thread.currentThread().getName() + " doors opening to let people in at floor " + initialFloor);  
-	                if(!handleDoors()) {
+	                if(!handleDoors() ) {
 	                	doorFault = true;
 	                	gui.updateElevatorStatus(6);
 	                    // If there is a permanent door fault (even after retrying), set the elevator state to "out of service"
@@ -238,7 +257,7 @@ public class Elevator implements Runnable {
             	System.out.println("\n" + Thread.currentThread().getName() + " needs to go to floor " + destinationFloor + " to drop off passengers.");
             }
             // move the elevator to the destination floor and open its doors to let passengers out
-            if(!moveElevator(destinationFloor)) {
+            if(!moveElevator(destinationFloor, false)) {
             	floorFault = true;
             	gui.updateElevatorStatus(5);
             	
@@ -272,7 +291,21 @@ public class Elevator implements Runnable {
 //                System.out.print("(" + floor.getFirst() + ", " + floor.getSecond() + ") ");
 //            }
         }
-              return true;      
+        floorsQueue.remove();
+        return true;      
+    }
+    
+    public void sortDestinationFloorsByDirection(PriorityQueue<DestinationFloor> destinationFloors, int direction) {
+        List<DestinationFloor> temp = new ArrayList<>();
+        while (!destinationFloors.isEmpty()) {
+            temp.add(destinationFloors.poll());
+        }
+        if (direction > 0) {
+            Collections.sort(temp, Comparator.comparingInt(DestinationFloor::getFloorNumber));
+        } else if (direction < 0) {
+            Collections.sort(temp, Comparator.comparingInt(DestinationFloor::getFloorNumber).reversed());
+        }
+        destinationFloors.addAll(temp);
     }
 
 	/**
@@ -281,27 +314,31 @@ public class Elevator implements Runnable {
 	 * @return	a boolean, true if elevator successfully moves from the current floor to the destination floor, false otherwise
 	 * This method returns false if a floor fault occurs, true otherwise
 	 */
-	public boolean moveElevator(Integer destinationFloor) {
+	public boolean moveElevator(Integer destinationFloor, boolean isInitialFloor)  {
+		String executedRequest = "Finished Requests:";
 	    int direction = destinationFloor.compareTo(currentFloor);
 	    long floorTimeout = 20000; 	// 20 seconds timeout for the elevator to move from one floor to another
-        if (direction > 0) {
-        	destinationFloors = new PriorityQueue<>(Comparator.comparingInt(DestinationFloor::getFloorNumber));
-        } else if (direction < 0) {
-            destinationFloors = new PriorityQueue<>(Comparator.comparingInt(DestinationFloor::getFloorNumber).reversed());
-        }
-        destinationFloors.add(new DestinationFloor(destinationFloor, false));
+        destinationFloors.add(new DestinationFloor(destinationFloor, isInitialFloor));
         
         while (!destinationFloors.isEmpty()) {
         	DestinationFloor currentDestinationFloorElement = destinationFloors.element();
         	int currentDestinationFloor = currentDestinationFloorElement.getFloorNumber();
-//        	System.out.println(Thread.currentThread().getName() + " DESTINATION FLOORS: " + currentDestinationFloorElement.getFloorNumber());
-//        	System.out.println(Thread.currentThread().getName() + " DESTINATION FLOORS 2: " + currentDestinationFloor);
-//           	System.out.println(Thread.currentThread().getName() + " DESTINATION FLOORS 3: " + currentFloor);
-//           	
-//           	System.out.println(Thread.currentThread().getName() + " DESTINATION FLOORS 3: " + destinationFloors.toString());
-
 
         	while (currentFloor != currentDestinationFloor) {
+        		gui.updateFinishedRequests(executedRequest);
+            	gui.updateLogArea(new Pair<>(initialFloor, destinationFloors.peek().getFloorNumber()));
+        		System.out.println(Thread.currentThread().getName() + " THE CURRENT DESTINATION IS: " + currentDestinationFloor);
+        		System.out.println(Thread.currentThread().getName() + " THE CURRENT FLOOR IS: " + currentFloor);
+//        		sortDestinationFloorsByDirection(destinationFloors, direction);
+                
+        		Iterator<DestinationFloor> iterators = destinationFloors.iterator();
+        		while (iterators.hasNext()) {
+        		    DestinationFloor destinationFloors = iterators.next();
+        		    int floorNumber = destinationFloors.getFloorNumber();
+        		    boolean isInitialFloors = destinationFloors.isInitialFloor();
+        		    System.out.println("Floor " + floorNumber + " is an " + (isInitialFloors ? "initial" : "Destination") + " floor.");
+        		}
+        		
                 // check for interrupt flag and exit early if set
                 if (Thread.currentThread().isInterrupted()) {
                     System.out.println(Thread.currentThread().getName() + " was interrupted during elevator movement.");
@@ -316,7 +353,7 @@ public class Elevator implements Runnable {
     	            currentFloor--;
     	        }
     	        
-    	        //update GUI
+    	        // update GUI
     	        gui.updateElevatorFloor(currentFloor);
     	        gui.updateElevatorStatus(state);
     	        
@@ -347,30 +384,46 @@ public class Elevator implements Runnable {
 //    	        Pair<Integer, Integer> firstRequest = floorsQueue.peek();
 
     	        
+//            	if(currentFloor == currentDestinationFloor && !currentDestinationFloorElement.isInitialFloor()) {
+//            		if(Thread.currentThread().getName().equals("Elevator Two")) {
+//                		System.out.println("LOG AREA UPDATED 1");
+//            		}
+//
+//            		gui.updateFinishedRequests(executedRequest);
+//            	}
     	        while (iterator.hasNext()) {
-    	            Pair<Integer, Integer> request = iterator.next();
+    	        	Pair<Integer, Integer> request = iterator.next();
 
+                	if(currentFloor == currentDestinationFloor && !currentDestinationFloorElement.isInitialFloor()) {
+                		if(Thread.currentThread().getName().equals("Elevator Two")) {
+                    		System.out.println("LOG AREA UPDATED 1");
+                		}
+
+                		if(request.getSecond() == currentDestinationFloor) {
+                			executedRequest += "\nInitial floor: " + request.getFirst() + " and Destination floor: " + request.getSecond();        
+                		}
+                	}
     	            // Check if the elevator is moving up and the request's initial floor is above the current floor,
     	            // or if the elevator is moving down and the request's initial floor is below the current floor.
-    	            boolean isRequestInRange = (direction > 0 && request.getFirst() >= currentFloor && request.getFirst() <= destinationFloor && !request.isExecuted())
-    	                    || (direction < 0 && request.getFirst() <= currentFloor && request.getFirst() >= destinationFloor);
+    	            boolean isRequestInRange = (direction > 0 && request.getFirst() >= currentFloor && request.getFirst() <= request.getSecond() && !request.isExecuted())
+    	                    || (direction < 0 && request.getFirst() <= currentFloor && request.getFirst() >= request.getSecond());
 
     	            if (isRequestInRange) {
+    	            	System.out.println(Thread.currentThread().getName() + " BEING EXECUTED HERE: " + request.getFirst() + " " + destinationFloor);
     	                request.setPassengersInElevator(true);
 
     	                if (request.getSecond() == destinationFloor || request.getSecond() < destinationFloor) {
+    	                	System.out.println(Thread.currentThread().getName() + " BEING EXECUTED HERE 2");   	                	
     	                    request.setExecuted(true);
     	                    destinationFloors.add(new DestinationFloor(request.getFirst(), true));
     	                    destinationFloors.add(new DestinationFloor(request.getSecond(), false));
-    	                    currentDestinationFloor = request.getFirst();
-    	                    currentDestinationFloorElement = new DestinationFloor(request.getSecond(), true);
+    	                    sortDestinationFloorsByDirection(destinationFloors, request.getFirst().compareTo(request.getSecond()));
+    	                    currentDestinationFloor = destinationFloors.peek().getFloorNumber();
+    	                    currentDestinationFloorElement = new DestinationFloor(destinationFloors.peek().getFloorNumber(), true);
     	                }
-    	            }
-    	        }
-
-    	        
-    	        
-        }
+    	            } 
+    	        }   	        
+        	}
             System.out.println(Thread.currentThread().getName() + " arrived at floor " + currentDestinationFloor);
             
             if(currentDestinationFloorElement.isInitialFloor()) {
@@ -380,6 +433,7 @@ public class Elevator implements Runnable {
             	System.out.println("\n" + Thread.currentThread().getName() + " doors opening to let people out at floor " + currentDestinationFloor);              
             	gui.updateElevatorStatus(3);
             }
+            
             if(!handleDoors()) {
                 System.out.println("\nThe elevator is out of service due to a permanent door fault. Stopping at destination floor.");
                 
@@ -388,6 +442,7 @@ public class Elevator implements Runnable {
                 Thread.currentThread().interrupt();
                 return false;
             }
+            
         	destinationFloors.poll();
 	    
 	 }
@@ -485,10 +540,10 @@ public class Elevator implements Runnable {
 	 return true;    
 }	
 
-    public void sendReceive() {
-    	startFloorSenderThread(4000);
-        Thread receivingThread = new Thread(() -> {
+	public void startReceiving() {
+		Runnable receivingThread = () -> {
             while (true) {
+            	System.out.println("BEING EXECUTED");
                 byte[] schedulerData = new byte[1000];
                 DatagramPacket receivePacket = new DatagramPacket(schedulerData, schedulerData.length);
                 try {
@@ -523,15 +578,20 @@ public class Elevator implements Runnable {
 //                        System.out.print(floor + " ");
 //                    }
 
+                    System.out.println("BEING EXECUTED 2");
                     synchronized (lock) {
                         lock.notify(); // notify the elevator thread to execute the request
                     }
+                    System.out.println("BEING EXECUTED 3");
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
             }
-        });
-        receivingThread.start();
+        };
+        new Thread(receivingThread).start();
+	}
+    public void send() {
+    	startFloorSenderThread(4000);
 
         while (true) {
             synchronized (lock) {
@@ -542,6 +602,7 @@ public class Elevator implements Runnable {
                         e.printStackTrace();
                     }
                 }
+            }
 
                 String ack = "Request processed - " + Thread.currentThread().getName();
                 executeRequest();
@@ -553,6 +614,19 @@ public class Elevator implements Runnable {
                     break;
                 }
 		      try {
+		    	  // Elevator has finished the request
+		    	  gui.updateElevatorStatus(8);
+		    	  String requestsExecuted = "Finished Requests:";
+	    	      Iterator<Pair<Integer, Integer>> iterator = executedRequests.iterator();
+	    	      
+	    	      while (iterator.hasNext()) {
+	    	          Pair<Integer, Integer> request = iterator.next();
+	    	          requestsExecuted += "\nInitial floor: " + request.getFirst() + " and Destination floor: " + request.getSecond();        
+	    	      }
+	    	      System.out.println("REQUESTS EXECUTED: " + requestsExecuted);
+	    	      gui.updateFinishedRequests(requestsExecuted);
+	    	      gui.updateLogArea(new Pair<>(null, null));
+
 		    	  if(Thread.currentThread().getName().equals("Elevator One")) {
 		    		  sendPacket = new DatagramPacket(ack.getBytes(), ack.length(), InetAddress.getLocalHost(), 2000);
 		    	  } else if(Thread.currentThread().getName().equals("Elevator Two")) {
@@ -577,7 +651,6 @@ public class Elevator implements Runnable {
 		         System.exit(1);
 		      }
             }
-        }
     }
 	
 	/**
@@ -600,7 +673,8 @@ public class Elevator implements Runnable {
 	 */
 	@Override
     public void run() { 
-		sendReceive();
+		startReceiving();
+		send();
 	}
 	
 	public static void main(String args[])
@@ -608,6 +682,7 @@ public class Elevator implements Runnable {
 			Elevator e = new Elevator(5000, "Elevator One");
 			e.setTimeBetweenFloors(8000);
 			e.setTimeHandleDoors(2500);
+			e.setCurrentFloor(1);
 
 		    Thread t1 = new Thread(e, "Elevator One");	    	    
 		    t1.start();
@@ -615,6 +690,7 @@ public class Elevator implements Runnable {
 		    Elevator e2 = new Elevator(6000, "Elevator Two");
 			e2.setTimeBetweenFloors(8000);
 			e2.setTimeHandleDoors(2500);
+			e2.setCurrentFloor(2);
 
 		    Thread t2 = new Thread(e2, "Elevator Two");
 		    t2.start();   
@@ -622,6 +698,8 @@ public class Elevator implements Runnable {
 		    Elevator e3 = new Elevator(7000, "Elevator Three");
 			e3.setTimeBetweenFloors(21000);
 			e3.setTimeHandleDoors(2500);
+			e3.setCurrentFloor(2);
+
 
 		    Thread t3 = new Thread(e3, "Elevator Three");
 		    t3.start();    
@@ -629,6 +707,8 @@ public class Elevator implements Runnable {
 		    Elevator e4 = new Elevator(8000, "Elevator Four");
 			e4.setTimeBetweenFloors(8000);
 			e4.setTimeHandleDoors(11000);
+			e4.setCurrentFloor(16);
+
 
 		    Thread t4 = new Thread(e4, "Elevator Four");
 		    t4.start();    

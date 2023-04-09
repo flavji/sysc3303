@@ -7,20 +7,18 @@ import javax.sound.sampled.Clip;
 
 public class ElevatorGUI extends JFrame{
     private JTextArea logArea;
+    private JTextArea finishedRequests;
 
     /* elevator arrows*/
     
-    private ImageIcon UP;    
-    private ImageIcon DOWN;    
-    private ImageIcon STATIONARY;
-    private ImageIcon DOORFAULT;
-    private ImageIcon FLOORFAULT;
-    private ImageIcon OUTOFSERVICE;
-    private ImageIcon DOORSOPENING;
-    private ImageIcon DOORSCLOSING;
-    
-      
-    private ImageIcon currentIcon;
+    private ImageIcon up;    
+    private ImageIcon down;    
+    private ImageIcon stationary;
+    private ImageIcon doorFault;
+    private ImageIcon floorFault;
+    private ImageIcon outOfService;
+    private ImageIcon doorsOpening;
+    private ImageIcon doorsClosing;
     private static String elevatorNumber;
     
    
@@ -35,45 +33,43 @@ public class ElevatorGUI extends JFrame{
     public ElevatorGUI(String elevatorNumber) {
     	
     	//Initialize the ImageIcons
-    	UP =  new ImageIcon(getClass().getResource("elevator_arrow.png"));
-    	DOWN = new ImageIcon(getClass().getResource("elevatordown_arrow.png"));
-    	STATIONARY = new ImageIcon(getClass().getResource("Stationary.png"));
-    	DOORFAULT = new ImageIcon(getClass().getResource("DoorFault.jpg"));
-    	FLOORFAULT = new ImageIcon(getClass().getResource("FloorFault.jpg"));
-    	OUTOFSERVICE = new ImageIcon(getClass().getResource("outofService.jpg"));
-    	DOORSOPENING = new ImageIcon(getClass().getResource("doorsOpening.png"));
-    	DOORSCLOSING = new ImageIcon(getClass().getResource("doorsClosing.png"));
-    	
-    	  	
+    	up =  new ImageIcon(getClass().getResource("elevator_arrow.png"));
+    	down = new ImageIcon(getClass().getResource("elevatordown_arrow.png"));
+    	stationary = new ImageIcon(getClass().getResource("Stationary.png"));
+    	doorFault = new ImageIcon(getClass().getResource("DoorFault.jpg"));
+    	floorFault = new ImageIcon(getClass().getResource("FloorFault.jpg"));
+    	outOfService = new ImageIcon(getClass().getResource("outofService.jpg"));
+    	doorsOpening = new ImageIcon(getClass().getResource("doorsOpening.png"));
+    	doorsClosing = new ImageIcon(getClass().getResource("doorsClosing.png"));  	  	
     	
         setTitle(elevatorNumber);
-        setSize(400, 300);   
+        setSize(500, 400);   
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
         
-        Image upImage = UP.getImage().getScaledInstance(75, 75, Image.SCALE_SMOOTH);
-        UP = new ImageIcon(upImage);
+        Image upImage = up.getImage().getScaledInstance(75, 75, Image.SCALE_SMOOTH);
+        up = new ImageIcon(upImage);
         
-        Image downImage = DOWN.getImage().getScaledInstance(75, 75, Image.SCALE_SMOOTH);
-        DOWN = new ImageIcon(downImage);
+        Image downImage = down.getImage().getScaledInstance(75, 75, Image.SCALE_SMOOTH);
+        down = new ImageIcon(downImage);
 
-        Image stationaryImage = STATIONARY.getImage().getScaledInstance(75, 75, Image.SCALE_SMOOTH);
-        STATIONARY = new ImageIcon(stationaryImage);
+        Image stationaryImage = stationary.getImage().getScaledInstance(75, 75, Image.SCALE_SMOOTH);
+        stationary = new ImageIcon(stationaryImage);
         
-        Image doorImage = DOORFAULT.getImage().getScaledInstance(75, 75, Image.SCALE_SMOOTH);
-        DOORFAULT = new ImageIcon(doorImage);
+        Image doorImage = doorFault.getImage().getScaledInstance(75, 75, Image.SCALE_SMOOTH);
+        doorFault = new ImageIcon(doorImage);
         
-        Image floorFault = FLOORFAULT.getImage().getScaledInstance(75, 75, Image.SCALE_SMOOTH);
-        FLOORFAULT = new ImageIcon(floorFault);
+        Image floorImage = floorFault.getImage().getScaledInstance(75, 75, Image.SCALE_SMOOTH);
+        floorFault = new ImageIcon(floorImage);
 
-        Image outofService = OUTOFSERVICE.getImage().getScaledInstance(75, 75, Image.SCALE_SMOOTH);
-        OUTOFSERVICE = new ImageIcon(outofService);
+        Image outofService = outOfService.getImage().getScaledInstance(75, 75, Image.SCALE_SMOOTH);
+        outOfService = new ImageIcon(outofService);
         
-        Image doorsOpening = DOORSOPENING.getImage().getScaledInstance(75, 75, Image.SCALE_SMOOTH);
-        DOORSOPENING = new ImageIcon(doorsOpening);
+        Image doorsOpeningImage = doorsOpening.getImage().getScaledInstance(75, 75, Image.SCALE_SMOOTH);
+        doorsOpening = new ImageIcon(doorsOpeningImage);
         
-        Image doorsClosing = DOORSCLOSING.getImage().getScaledInstance(75, 75, Image.SCALE_SMOOTH);
-        DOORSCLOSING = new ImageIcon(doorsClosing);
+        Image doorsClosingImage = doorsClosing.getImage().getScaledInstance(75, 75, Image.SCALE_SMOOTH);
+        doorsClosing = new ImageIcon(doorsClosingImage);
         
 
         JPanel displayPanel = new JPanel();
@@ -91,21 +87,34 @@ public class ElevatorGUI extends JFrame{
 
         /* add direction arrows per elevator */
         elevatorDirections = new JLabel();
-        elevatorDirections.setIcon(STATIONARY);
+        elevatorDirections.setIcon(stationary);
         displayPanel.add(elevatorDirections);
 
         // add elevator status per elevator
         elevatorStats = new JTextField();
         elevatorStats = new JTextField("Stationary");
         displayPanel.add(elevatorStats);
-       
-//        logArea = new JTextArea();
-//        JScrollPane logScrollPane = new JScrollPane(logArea);
-//        add(logScrollPane, BorderLayout.SOUTH);
 
+        logArea = new JTextArea();
+        add(logArea, BorderLayout.SOUTH);
+        
+        finishedRequests = new JTextArea();
+    	finishedRequests.setText("Finished Requests\n");
+        displayPanel.add(finishedRequests, BorderLayout.EAST);
+        
+        
+        
+        
         setVisible(true);
     }
     
+    public void updateLogArea(Pair<Integer, Integer> pair) {
+    	logArea.setText("Current Request: Initial Floor: " + pair.getFirst() + " and Destination Floor: " + pair.getSecond());
+    }
+    
+    public void updateFinishedRequests(String requests) {
+    	finishedRequests.setText(requests);
+    }
     
     public void updateElevatorFloor(int currentFloor) {
     	elevatorFloors.setText("Floor: " + currentFloor);
@@ -115,43 +124,45 @@ public class ElevatorGUI extends JFrame{
     	     
         //later change this to Icon
         if(status == 0) {
-        	elevatorDirections.setIcon(STATIONARY);
+        	elevatorDirections.setIcon(stationary);
         	//elevatorDirections.setText("Direction: " + STATIONARY);
         }else if(status == 1) {
-        	elevatorDirections.setIcon(UP);
+        	elevatorDirections.setIcon(up);
         	elevatorStats.setText("Status: Elevator going up");
         	//elevatorDirections.setText("Direction: " + UP);
         	
         }else if(status == 2) {
-        	elevatorDirections.setIcon(DOWN);
+        	elevatorDirections.setIcon(down);
         	elevatorStats.setText("Status: Elevator going down");
         	//elevatorDirections.setText("Direction: " + DOWN);
         }else if(status == 3) {
-        	elevatorDirections.setIcon(DOORSOPENING);
+        	elevatorDirections.setIcon(doorsOpening);
         	//elevatorDirections.setText("Direction: " + STATIONARY);
         	elevatorStats.setText("Status: Elevator doors opening");
         	
         }else if(status == 4) {  	
-        	elevatorDirections.setIcon(DOORSCLOSING);
+        	elevatorDirections.setIcon(doorsClosing);
         	//elevatorDirections.setText("Direction: " + STATIONARY);
         	elevatorStats.setText("Status: Elevator doors closing");
         	
         }else if(status == 5) {
-        	elevatorDirections.setIcon(FLOORFAULT);
+        	elevatorDirections.setIcon(floorFault);
         	//elevatorDirections.setText("Direction: " + STATIONARY);
         	elevatorStats.setText("Status: Elevator floor fault");
         	
         }else if(status == 6) {
-        	elevatorDirections.setIcon(DOORFAULT);
+        	elevatorDirections.setIcon(doorFault);
         	//elevatorDirections.setText("Direction: " + STATIONARY);
         	elevatorStats.setText("Status: Elevator door fault");
         	
         }else if(status == 7) {
-        	elevatorDirections.setIcon(OUTOFSERVICE);
+        	elevatorDirections.setIcon(outOfService);
         	//elevatorDirections.setText("Direction: " + STATIONARY);
         	elevatorStats.setText("Status: Elevator is out of service");
         	
-        }     	
+        } else if (status == 8) {
+        	elevatorStats.setText("Status: Elevator finished request!");
+        }
         
     }
     

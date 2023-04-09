@@ -287,7 +287,7 @@ public class Floor implements Runnable {
 	 * @throws IOException	
 	 */
 	private void setFloorData(Date date, int iFloor, String direction, int dFloor) throws IOException {
-		fdPacket = new FloorData(10);    // setting default floors to 10
+		fdPacket = new FloorData(22);    // setting default floors to 22
 		
 		
 		fdPacket.setTime(date);
