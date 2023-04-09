@@ -7,10 +7,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 /**
+ * JUnit tests for Scheduler class.
  * 
- */
-
-/**
+ * @author Yash Kapoor
+ * @author Faiaz Ahsan
+ * @author Zeid Alwash
  * @author Fareen Lavji
  * @author Harishan Amutheesan
  * 
@@ -18,82 +19,97 @@ import org.junit.jupiter.api.Test;
  */
 class SchedulerTest {
 
-	Scheduler s = new Scheduler();
+    Scheduler s = new Scheduler();
 
-	/**
-	 * @throws java.lang.Exception
-	 */
-	@BeforeEach
-	void setUp() throws Exception {
-	}
+    /**
+     * Sets up the test fixture.
+     * 
+     * @throws java.lang.Exception
+     */
+    @BeforeEach
+    void setUp() throws Exception {
+    }
 
-	/**
-	 * @throws java.lang.Exception
-	 */
-	@AfterEach
-	void tearDown() throws Exception {
-	}
-	
-	/**
-	 * Tests the addRequests method. The method should add a new FloorData object to
-	 * the scheduler's list of all requests and return true.
-	 */
-	@Test
-	void testAddRequests() {
-		FloorData fd = new FloorData(10);
-		s.addRequests(fd);
-		assertEquals(fd, s.getAllRequests().peek());
-	}
-	
-	/**
-	 * Tests the removeRequests method. The method should remove the first FloorData
-	 * object from the scheduler's list of all requests and return true if successful.
-	 */
-	@Test
-	void testRemoveRequests() {
-		FloorData fd = new FloorData(10);
-		s.addRequests(fd);
-		s.removeRequests();
-		assertTrue(s.getAllRequests().isEmpty());
-	}
-	
-	/**
-	 * Tests the parsePacket method. The method should parse the given packet string and
-	 * create new FloorData objects for each request, then add them to the scheduler's list
-	 * of all requests.
-	 */
-	@Test
-	void testParsePacket() {
-		String arr = "2022-03-26 12:00:00,1,up,5/2022-03-26 12:00:01,2,down,1/";
-		s.parsePacket(arr);
-		assertEquals(2, s.getAllRequests().size());
-	}
-	/**
+    /**
+     * Tears down the test fixture.
+     * 
+     * @throws java.lang.Exception
+     */
+    @AfterEach
+    void tearDown() throws Exception {
+    }
 
-	This test verifies the functionality of the checkServiceableRequest method in the Scheduler class.
-	It creates two floor data objects with different initial and destination floors and floor buttons and 
-	adds them to the scheduler's request queue. Then, it calls the checkServiceableRequest method on each floor 
-	data object and checks if the returned port numbers are correct.
-	*/
-	@Test
-	void testCheckServiceableRequest() throws IOException{
-		FloorData fd1 = new FloorData(10);
-		fd1.setInitialFloor(1);
-		fd1.setDestinationFloor(5);
-		fd1.setFloorButton("up");
-		s.addRequests(fd1);
-		
-		FloorData fd2 = new FloorData(10);
-		fd2.setInitialFloor(2);
-		fd2.setDestinationFloor(4);
-		fd2.setFloorButton("down");
-		s.addRequests(fd2);
-		
-		int portNumber = s.checkServiceableRequest(fd1);
-		assertEquals(5000, portNumber);
-		
-		portNumber = s.checkServiceableRequest(fd2);
-		assertEquals(6000, portNumber);
-	}
-	
+    /**
+     * Tests the addRequests method. The method should add a new FloorData object to
+     * the scheduler's list of all requests and return true.
+     */
+    @Test
+    void testAddRequests() {
+        // Test adding a request
+        FloorData fd = new FloorData(10);
+        s.addRequests(fd);
+        assertEquals(fd, s.getAllRequests().peek());
+
+        // Test removing a request
+        s.removeRequests();
+        assertTrue(s.getAllRequests().isEmpty());
+
+        // Test parsing a packet
+        String arr = "2022-03-26 12:00:00,1,up,5/2022-03-26 12:00:01,2,down,1/";
+        s.parsePacket(arr);
+        assertEquals(2, s.getAllRequests().size());
+
+        // Test checking serviceable requests
+        try {
+            fd.setInitialFloor(1);
+            fd.setDestinationFloor(5);
+            fd.setFloorButton("down");
+            s.addRequests(fd);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        FloorData fd2 = new FloorData(10);
+        try {
+            fd2.setInitialFloor(2);
+            fd2.setDestinationFloor(4);
+            fd2.setFloorButton("down");
+            s.addRequests(fd2);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        FloorData fd3 = new FloorData(10);
+        try {
+            fd3.setInitialFloor(3);
+            fd3.setDestinationFloor(8);
+            fd3.setFloorButton("up");
+            s.addRequests(fd3);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        FloorData fd4 = new FloorData(10);
+        try {
+            fd4.setInitialFloor(7);
+            fd4.setDestinationFloor(1);
+            fd4.setFloorButton("down");
+            s.addRequests(fd4);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        // Test verifying serviceable requests
+        int portNumber = s.checkServiceableRequest(fd);
+        assertEquals(5000, portNumber);
+
+        portNumber = s.checkServiceableRequest(fd2);
+        assertEquals(6000, portNumber);
+
+        portNumber = s.checkServiceableRequest(fd3);
+        assertEquals(7000, portNumber);
+
+        portNumber = s.checkServiceableRequest(fd4);
+        assertEquals(8000, portNumber);
+    }
 }
