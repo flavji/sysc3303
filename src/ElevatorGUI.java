@@ -109,7 +109,7 @@ public class ElevatorGUI extends JFrame{
     }
     
     public void updateLogArea(Pair<Integer, Integer> pair) {
-    	logArea.setText("Current Request: Initial Floor: " + pair.getFirst() + " and Destination Floor: " + pair.getSecond());
+    	logArea.setText("Current Request: Initial Floor: " + pair.getInitialFloor() + " and Destination Floor: " + pair.getDestinationFloor());
     }
     
     public void updateFinishedRequests(String requests) {

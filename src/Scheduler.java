@@ -7,13 +7,9 @@ import java.net.UnknownHostException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Queue;
-
-//import udpIP.Client;
 
 /**
  * Scheduler Class that consists of a thread that is used as a communication channel between the clients (i.e., floor and elevator).
@@ -24,18 +20,16 @@ import java.util.Queue;
  * @author Fareen Lavji
  * @author Harishan Amutheesan
  * 
- * @version 02.27.2023
+ * @version Final Project Submission
  */
-public class Scheduler implements Runnable {
+public class Scheduler {
 	
 	private ArrayList<Elevator> elevators; // collection of elevators
 	private Queue<FloorData> allFloorRequests;   // a queue of all requests in the CSV file
-	private boolean floorRequestReceived;
 	private int[] portNumbers = new int[5];
 	private String elevatorAck = "";
 	private Object lock = new Object();
 	private volatile boolean elevatorsAvailable = true;
-	private ElevatorGUI gui;
 	private boolean shouldRequestUpdate = true;
 	
 	DatagramPacket receivePacketFloor, receiveAcknowledgementFloor, receivePacketElevatorOne, receivePacketElevatorTwo, receivePacketElevatorThree,
@@ -49,7 +43,6 @@ public class Scheduler implements Runnable {
 		
 		this.elevators = new ArrayList<Elevator>();
 		this.allFloorRequests = new LinkedList<FloorData>();
-		this.floorRequestReceived = false;
 		
 		// initialize ports, assumption: 2 elevators by default
 		portNumbers[0] = 50;
@@ -145,8 +138,14 @@ public class Scheduler implements Runnable {
         }
     }
 	
-    public void startFloorReceiverThread(int port) {
-        Runnable floorReceiver = () -> {
+	/**
+	 * Constantly listens for information (current floor and state of the elevator) 
+	 * from the elevator, so it can always know what the current floor and
+	 * state of the elevator is.
+	 * @param port	an int, the port number of the socket
+	 */
+    public void receiveElevatorStatus(int port) {
+        Runnable elevatorStatusReceiver = () -> {
             DatagramSocket socket = null;
             try {
                 socket = new DatagramSocket(port);
@@ -157,29 +156,22 @@ public class Scheduler implements Runnable {
                     String floorString = new String(packet.getData(), 0, packet.getLength());
                     String[] parts = floorString.split(":");
                     String elevator = parts[0];
+                    
                     int floor = Integer.parseInt(parts[1].trim());
                     int state = Integer.parseInt(parts[2].trim());
-                    
+                   
                     if (elevator.equals("Elevator One")) {
                         elevators.get(0).setCurrentFloor(floor);
                         elevators.get(0).setState(state);
-//                    	gui.updateElevatorFloor(floor);
-//                    	gui.updateElevatorStatus(state);
                     } else if (elevator.equals("Elevator Two")) {
                     	elevators.get(1).setCurrentFloor(floor);
                     	elevators.get(1).setState(state);
-//                    	gui.updateElevatorFloor(floor);
-//                    	gui.updateElevatorStatus(state);
                     } else if (elevator.equals("Elevator Three")) {
                     	elevators.get(2).setCurrentFloor(floor);
                     	elevators.get(2).setState(state);
-//                    	gui.updateElevatorFloor(floor);
-//                    	gui.updateElevatorStatus(state);
                     } else if (elevator.equals("Elevator Four")) {
                     	elevators.get(3).setCurrentFloor(floor);
                     	elevators.get(3).setState(state);
-//                    	gui.updateElevatorFloor(floor);
-//                    	gui.updateElevatorStatus(state);
                     }
                 }
             } catch (Exception e) {
@@ -190,24 +182,36 @@ public class Scheduler implements Runnable {
                 }
             }
         };
-        new Thread(floorReceiver).start();
+        new Thread(elevatorStatusReceiver).start();
     }
     
 	/**
-	 * Assigns the appropriate request to the appropriate elevator based off which elevator is stationary
-	 * and what floors the elevators are currently at
+	 * Assigns the appropriate request to the appropriate elevator.
+	 * 
+	 * If multiple elevators are stationary (state is 0), it assigns the request to
+	 * the nearest elevator. 
+	 * 
+	 * If all elevators are moving (state is not 0), it checks to see if the request is 
+	 * in the same direction as the elevator is currently going in (either up or down).
+	 * If that's true, then it checks to see
+	 * if the initial floor of the request lies between the current floor of the elevator
+	 * and the destination floor of the request the elevator is currently processing. 
+	 * If that's true, then that elevator is assigned the request.
+	 * 
+	 * If the above is true for multiple elevators, then it assigns the request to the nearest 
+	 * elevator based off the current floor of the elevator.
+	 * 
+	 * If none of the conditions above are true, then there are no serviceable elevators available
+	 * at the moment.
+	 * 
 	 * @param fd	a FloorData Object, the information of the request
 	 * @return	an int, the port number of the elevator that the request gets assigned to
+	 * 
+	 * If there are no serviceable elevators available, then this method returns 0.
 	 */
 	public int checkServiceableRequest(FloorData fd) {
-	    
-//    	System.out.println("Current FLOOR elevator 1: " + elevators.get(0).getCurrentFloor());
-//		System.out.println("Current FLOOR elevator 2: " + elevators.get(1).getCurrentFloor());
-//		
-//    	System.out.println("Current STATE elevator 1: " + elevators.get(0).getState());
-//		System.out.println("Current STATE elevator 2: " + elevators.get(1).getState());
 		
-		// first case: go through the elevators and assign the request to the elevator that is stationary
+		// First Case: go through the elevators and assign the request to the closest elevator that is stationary 
 		boolean elevatorFound = false;
 		int minDist = Integer.MAX_VALUE;
 		int elevatorIdx = -1;
@@ -227,14 +231,12 @@ public class Scheduler implements Runnable {
 		    return 5000 + (elevatorIdx * 1000);
 		}
 	    	    
-		// 2, 8 - elevator one
-		// 1, 5 - elevator two
 		
-		// 3, 6
-	
-		// if fd.getFloorButton() 
-		// second case: all the elevators are moving
-		// if the received request is between the initial floor and the destination floor
+		// Second Case: all the elevators are moving
+		// and the received request is between the initial floor and the destination floor.
+		// If the condition above is true for multiple elevators, the request is assigned
+		// to the closest elevator.
+		
 	    // Check if no elevators are available
 		boolean allBusy = elevators.stream().allMatch(elevator -> elevator.getState() != 0);
 		if (allBusy) {
@@ -248,18 +250,25 @@ public class Scheduler implements Runnable {
 			    boolean upDirection = fd.getInitialFloor() < fd.getDestinationFloor();
 			    boolean downDirection = fd.getInitialFloor() > fd.getDestinationFloor();
 
+			    // request and elevator's direction are the same (up) and the initial floor of the request lies
+			    // the current floor of the elevator and the destination floor of the request
 			    if ((upDirection && elevator.getState() == 1) && fd.getInitialFloor() >= elevator.getInitialRequest().getInitialFloor() && 
 		                fd.getInitialFloor() > elevator.getCurrentFloor() && 
 		                fd.getInitialFloor() <= elevator.getInitialRequest().getDestinationFloor()) {
 			        int distance = fd.getInitialFloor() - elevator.getCurrentFloor();
+			        // assign to closest elevator if it is true for multiple elevators
 			        if (distance < minDistance) {
 			            closestElevator = elevatorNumber;
 			            minDistance = distance;
 			        }
-			    } else if ((downDirection && elevator.getState() == 2) && fd.getInitialFloor() >= elevator.getInitialRequest().getInitialFloor() && 
+			    } 
+			    // request and elevator's direction are the same (down) and the initial floor of the request lies
+			    // the current floor of the elevator and the destination floor of the request
+			    else if ((downDirection && elevator.getState() == 2) && fd.getInitialFloor() >= elevator.getInitialRequest().getInitialFloor() && 
 	                       fd.getInitialFloor() < elevator.getCurrentFloor() && 
 	                       fd.getInitialFloor() <= elevator.getInitialRequest().getDestinationFloor()) {
-			        int distance = elevator.getCurrentFloor() - fd.getInitialFloor();
+			        int distance = elevator.getCurrentFloor() - fd.getInitialFloor();			        
+			        // assign to closest elevator if it is true for multiple elevators
 			        if (distance < minDistance) {
 			            closestElevator = elevatorNumber;
 			            minDistance = distance;
@@ -278,75 +287,86 @@ public class Scheduler implements Runnable {
 	}
 	
 	/**
-	 * Send and receive DatagramPackets to/from floor 
+	 * Send and receive DatagramPackets to/from floor.
+	 * 
+	 * Receives the requests from the floor and sends a reply to the floor
+	 * indicating that it has received the request.
 	 */
 	 public void sendReceiveFloor() {
-			   while(true) {
-				   byte floorData[] = new byte[1000];
-				   byte floorReply[] = new byte[100];
-				   String reply = "Scheduler has received the request";
-				   
-				   //form packets to receive from elevator
-				   receivePacketFloor = new DatagramPacket(floorData, floorData.length);
+		 while(true) {
+		   byte floorData[] = new byte[1000];
+		   byte floorReply[] = new byte[100];
+		   String reply = "Scheduler has received the request";
+		   
+		   //form packets to receive from elevator
+		   receivePacketFloor = new DatagramPacket(floorData, floorData.length);
 
-				   			   
-					// Block until a datagram packet is received from elevator
-				      try {        
-				         System.out.println("\nScheduler: Waiting for Request from Floor..."); 
-				         floorSocket.receive(receivePacketFloor);
-				        
-				      } catch (IOException e) {
-				         System.out.print("IO Exception: likely:");
-				         System.out.println("Receive Socket Timed Out.\n" + e);
-				         e.printStackTrace();
-				         System.exit(1);
-				      }
-				      
-				      //set boolean to true once floor request is received from floor
-				      floorRequestReceived = true;
-				      
-				      parsePacket(new String(receivePacketFloor.getData(),0,receivePacketFloor.getLength()));
-				      
-				  
-				      
-				     //print the received datagram
-				      System.out.println("\nScheduler: Request received from Floor");
-				      System.out.println("Containing: " + new String(receivePacketFloor.getData(),0,receivePacketFloor.getLength()));
-				      
-				      
-				     // form packet to reply to floor
-				      floorReply = reply.getBytes();
-				      try {
-				    	   sendPacketFloor = new DatagramPacket(floorReply, floorReply.length, InetAddress.getLocalHost(), receivePacketFloor.getPort());
-				      } catch(UnknownHostException e) {
-					         e.printStackTrace();
-					         System.exit(1);
-					  }
-				      
-				      
-				      // send the reply packet to floor
-				      try {
-				    	  floorSocket.send(sendPacketFloor);
-				      } catch (IOException e) {
-				         e.printStackTrace();
-				         System.exit(1);
-				      }
-				      
-					  // print the reply sent back to floor
-				      System.out.println("Scheduler: Reply Packet sent to Floor:");
-				      System.out.println("Containing: " + new String(sendPacketFloor.getData(),0,sendPacketFloor.getLength()));
+		   			   
+			// Block until a datagram packet is received from elevator
+		      try {        
+		         System.out.println("\nScheduler: Waiting for Request from Floor..."); 
+		         floorSocket.receive(receivePacketFloor);
+		        
+		      } catch (IOException e) {
+		         System.out.print("IO Exception: likely:");
+		         System.out.println("Receive Socket Timed Out.\n" + e);
+		         e.printStackTrace();
+		         System.exit(1);
+		      }
+		      
+		      
+		      parsePacket(new String(receivePacketFloor.getData(),0,receivePacketFloor.getLength()));
+		      
+		  
+		      
+		     //print the received datagram
+		      System.out.println("\nScheduler: Request received from Floor");
+		      System.out.println("Containing: " + new String(receivePacketFloor.getData(),0,receivePacketFloor.getLength()));
+		      
+		      
+		     // form packet to reply to floor
+		      floorReply = reply.getBytes();
+		      try {
+		    	   sendPacketFloor = new DatagramPacket(floorReply, floorReply.length, InetAddress.getLocalHost(), receivePacketFloor.getPort());
+		      } catch(UnknownHostException e) {
+			         e.printStackTrace();
+			         System.exit(1);
+			  }
+		      
+		      
+		      // send the reply packet to floor
+		      try {
+		    	  floorSocket.send(sendPacketFloor);
+		      } catch (IOException e) {
+		         e.printStackTrace();
+		         System.exit(1);
+		      }
+		      
+			  // print the reply sent back to floor
+		      System.out.println("Scheduler: Reply Packet sent to Floor:");
+		      System.out.println("Containing: " + new String(sendPacketFloor.getData(),0,sendPacketFloor.getLength()));
 
-			          Thread processElevatorRequests = new Thread(() -> {
-			                sendReceiveElevator();
-			            });
-			          processElevatorRequests.start();
-			   }
-			   
-			  
-				    
+		      // Creates and starts a new thread for every request 
+		      // and calls the sendReceiveElevator() method, so this method can 
+		      // keep on receiving requests, while the sendReceiveElevator()
+		      // method processes them
+	          Thread processElevatorRequests = new Thread(() -> {
+	                sendReceiveElevator();
+	            });
+	          processElevatorRequests.start();
+	   }				    
 }
 			      
-	 
+	 /**
+	  * Handles the elevator request by sending it to the elevator and waiting for an acknowledgement.
+	  * Once an acknowledgement is received from the elevator, it is sent to the floor.
+	  * @param portNumber
+	  * @param requests
+	  * @param socket
+	  * @param sendPacket
+	  * @param receivePacket
+	  * @param reply
+	  */
 	 private void handleElevatorRequest(int portNumber, String requests, DatagramSocket socket, DatagramPacket sendPacket, DatagramPacket receivePacket, byte[] reply) {
 	    requests += allFloorRequests.element().getTime().toString() + ","
 	                + allFloorRequests.element().getInitialFloor() + ","
@@ -371,36 +391,17 @@ public class Scheduler implements Runnable {
 	    
 	    int index = (portNumber - 5000) / 1000; // Calculate the index based on the port number
 
+	    // if the request lies between the initial floor 
+	    // and the destination floor of the request the elevator is currently processing,
+	    // then we do not want to update the initial request of the elevator.
 	    if (shouldRequestUpdate) {
+	    	// only update this when the elevator is stationary
 	        elevators.get(index).setInitialRequest(allFloorRequests.element());
 	    }
 
 	    elevators.get(index).setCurrentRequest(allFloorRequests.element());
 
 	    shouldRequestUpdate = true;
-//	    if(shouldRequestUpdate) {
-//		    if(portNumber == 5000) {
-//		    	elevators.get(0).setInitialRequest(allFloorRequests.element());
-//		    } else if (portNumber == 6000) {
-//		    	elevators.get(1).setInitialRequest(allFloorRequests.element());
-//		    } else if (portNumber == 7000) {
-//		    	elevators.get(2).setInitialRequest(allFloorRequests.element());
-//		    } else if (portNumber == 8000) {
-//		    	elevators.get(3).setInitialRequest(allFloorRequests.element());
-//		    }
-//	    }
-//	    
-//	    if(portNumber == 5000) {
-//	    	elevators.get(0).setCurrentRequest(allFloorRequests.element());
-//	    } else if (portNumber == 6000) {
-//	    	elevators.get(1).setCurrentRequest(allFloorRequests.element());
-//	    } else if (portNumber == 7000) {
-//	    	elevators.get(2).setCurrentRequest(allFloorRequests.element());
-//	    } else if (portNumber == 8000) {
-//	    	elevators.get(3).setCurrentRequest(allFloorRequests.element());
-//	    }
-//
-//	    shouldRequestUpdate = true;
 	    
 	    FloorData currentRequestElevatorOne = elevators.get(0).getCurrentRequest();
 	    FloorData currentRequestElevatorTwo = elevators.get(1).getCurrentRequest();
@@ -424,7 +425,7 @@ public class Scheduler implements Runnable {
 	        System.exit(1);
 	    }
 	    
-	    //print the received datagram from the elevator
+	    // print the received datagram from the elevator
 	    System.out.println("\nScheduler: Acknowledgement Packet received from Elevator:");
 	    System.out.println("Containing: " + new String(receivePacket.getData(),0,receivePacket.getLength()));
 	    
@@ -454,7 +455,7 @@ public class Scheduler implements Runnable {
 	    }
 	    
  	  
-		//form Ack packet to floor
+		// form acknowledgement packet to send to floor
     	DatagramPacket sendAckPacketFloor = null;
 		try {
 			sendAckPacketFloor = new DatagramPacket(elevatorAck.getBytes(), elevatorAck.length(), InetAddress.getLocalHost(), 1500);
@@ -463,27 +464,30 @@ public class Scheduler implements Runnable {
 			e1.printStackTrace();
 		}
       
-      //print the ack packet sent to floor
-      System.out.println("Scheduler: Acknowledgement Packet sent to Floor since the elevator has processed the request");
-      System.out.println("Containing: " + new String(sendAckPacketFloor.getData(),0,sendAckPacketFloor.getLength()));
-            
-      try {
-    	  floorSendSocket.send(sendAckPacketFloor);
-      } catch (IOException e) {
-         e.printStackTrace();
-         System.exit(1);
-      }
-	    
-	    
-}
-
-			      
+	    // print the acknowledgement packet sent to floor
+	    System.out.println("Scheduler: Acknowledgement Packet sent to Floor since the elevator has processed the request");
+	    System.out.println("Containing: " + new String(sendAckPacketFloor.getData(),0,sendAckPacketFloor.getLength()));
+	            
+	    try {
+	    	floorSendSocket.send(sendAckPacketFloor);
+	    } catch (IOException e) {
+	       e.printStackTrace();
+	       System.exit(1);
+	    }	    
+	 }			      
 			      		
 	/**
-	 * Send and receive DatagramPackets to/from elevator 
+	 * Send and receive DatagramPackets to/from elevator. 
+	 * 
+	 * Checks which elevator to send the request to by calling the checkServiceableRequest() 
+	 * method. Then, once checkServiceableRequest() returns the port number of the elevator
+	 * the request is assigned to, then this method will send the request to that 
+	 * specific elevator with the help of the handleElevatorRequest() method.
+	 * 
+	 * If no serviceable elevators are currently available, this method 
+	 * keeps re-checking every 1 second for an available elevator.
 	 */
-	 public void sendReceiveElevator() {
-		 
+	 public void sendReceiveElevator() {		 
 		 synchronized(lock) {
 			 while(allFloorRequests.isEmpty()) {
 				 try {
@@ -510,19 +514,23 @@ public class Scheduler implements Runnable {
 			 portNumber = checkServiceableRequest(allFloorRequests.element());
 		     if (elevatorsAvailable) {
 		          if (portNumber == 5000) {
+		        	  // elevator one
 		        	   handleElevatorRequest(5000, elevatorOneRequests, elevatorOneSocket, sendPacketElevator1, receivePacketElevatorOne, elevatorOneReply);		      
 		               break;
 		           } else if (portNumber == 6000) {
+		        	   // elevator two
 		        	   handleElevatorRequest(6000, elevatorTwoRequests, elevatorTwoSocket, sendPacketElevator2, receivePacketElevatorTwo, elevatorTwoReply);     
 					   break;
 		           } else if (portNumber == 7000) {
+		        	   // elevator three
 		        	   handleElevatorRequest(7000, elevatorThreeRequests, elevatorThreeSocket, sendPacketElevator3, receivePacketElevatorThree, elevatorThreeReply);     
 					   break;
 		           } else if (portNumber == 8000) {
+		        	   // elevator four
 		        	   handleElevatorRequest(8000, elevatorFourRequests, elevatorFourSocket, sendPacketElevator4, receivePacketElevatorFour, elevatorFourReply);     
 					   break;
 		           }	
-		       } else {
+		     } else {
 		    	   // Elevators are unavailable since all of them are moving
 		    	   // Keep checking whether an elevator becomes available by going to the beginning of the loop
 		           try {
@@ -531,49 +539,17 @@ public class Scheduler implements Runnable {
 		               e.printStackTrace();
 		           }
 		           continue;
-		       }
+			 }
 		 }
-}
-		 
-		 
-	 
-			      			     	      			   			   			   
-		   
-
-//	/**
-//	 * Used to run the Scheduler thread.
-//	 */
-//	@Override
-//	public void run() {
-//		
-//		if(Thread.currentThread().getName().equals("Floor")) {
-//			System.out.println("Floor method runs");
-//			sendReceiveFloor();
-//			
-//        } else {
-//        	System.out.println("Elevator method runs");
-//        	sendReceiveElevator();
-//        }
-//        
-//    }
+	 }
 	
 	public static void main(String args[])
 	   { 
 			Scheduler s = new Scheduler();
-		    Thread floorThread = new Thread(s::sendReceiveFloor);
-//		    Thread elevatorThread = new Thread(s::sendReceiveElevator);
-		    
+		    Thread floorThread = new Thread(s::sendReceiveFloor);		    
 		    
 		    floorThread.start();
-		    s.startFloorReceiverThread(4000);
-		    //elevatorThread.start();
-	    
+		    s.receiveElevatorStatus(4000);	    
 	   }
-
-	@Override
-	public void run() {
-		// TODO Auto-generated method stub
-		
-	}
 	
 }

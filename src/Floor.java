@@ -1,5 +1,4 @@
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 
 //import udpIP.Client;
@@ -21,39 +20,18 @@ import java.text.*;
  * @author Fareen Lavji
  * @author Harishan Amutheesan
  * 
- * @version 02.27.2023
+ * @version Final Submission
  */
 public class Floor implements Runnable {
 	private String floorRequests;
 	private FloorData fdPacket;
 	private String csvRequests = "";
-	private DatagramPacket sendPacket, receivePacket, receiveAckPacket;
-	private DatagramSocket replySocket, acknowledgementSocket;
+	private DatagramPacket sendPacket, receivePacket;
 	private ArrayList<Date> times;
 	private int pendingRequests;
 	private long startTime;
 	private long endTime;
 	private long elapsedTime;
-	
-	// One request at a time from the floor goes to the scheduler -> elevator > scheduler then back to floor
-	// Use arrival times to send the requests
-	// Scheduler assigns it to a specific elevator 
-	// Elevator going up, travels up until it has serviced all the requests and same for elevator going up
-	// When scheduler receives the request, its gonna add it to the queue we have
-	// Use the queue as people that are waiting for the elevator, and each elevator has a queue that has all the people on it 
-	// Elevator needs a list of destination floors 
-	// scheduler needs a list of initial and destination floor - scheduler keeps track of all ppl waiting to enter elevator
-	// elevator keeps track of ppl on it 
-	// You can have any number of elevators as a result 
-	// Elevator has one queue - it can store the number of people in the elevator and the destination floor the elevator is supposed to go to
-	
-	// We're still confused about how to implement the timer - should it be like as soon as the program starts, the timer begins?
-	// Wall clock - 10 real seconds (import statement) go by, simulator time - doesnt actually wait the 10 seconds 
-	// Floor controls simulation time 
-	// Will each request count as one person in the elevator? 
-	
-	// If the requests happen simultaneously, does the floor send both the requests
-	// and then the scheduler determines if they are serviceable?
 	
 	/**
 	 * Constructor for Floor that initializes a scheduler and floor data.
@@ -95,16 +73,11 @@ public class Floor implements Runnable {
 		}
 
 	}
-	
-	// Check which request is the first one based on the wall clock time
-	// the request that has the smallest time in the CSV file is going to run first
-	// implement selectRequest() method (don't need to create a new method - we can modify unwrapData() method)
-	
-	// We start the wall clock time when we send the first request
-	
+		
 	/**
 	 * Reads the floorRequests.csv file that contains instructions for the elevator to execute.
-	 * Sets the floor data, and notifies the scheduler.
+	 * Sets the floor data, creates a new thread for each request in the CSV file, then
+	 * calls the sendReceive() method to send the request to the scheduler.
 	 */ 
 	public void unwrapData() {
 		try 
@@ -143,6 +116,7 @@ public class Floor implements Runnable {
 	            if (lineNumber < times.size()) {
 	                time = times.get(lineNumber).getTime() - times.get(lineNumber - 1).getTime();
 	            }
+	            // sleeps until it is ready to go to the scheduler
 			    try {
 			    	if(time == 0) {
 			    		Thread.sleep(1000);
@@ -166,49 +140,57 @@ public class Floor implements Runnable {
 		}
 	}
 	
-	   // method to listen for packets from the Scheduler
-	   public void listenForSchedulerPackets(int port) {
-		   
-		   Runnable floorReceiver = () -> {
-		      // create a DatagramSocket and DatagramPacket to receive packets from the Scheduler
-		     DatagramSocket schedulerSocket = null;
-			try {
-				schedulerSocket = new DatagramSocket(port);
-			      byte[] receiveData = new byte[1024];
-			      DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
-		
-			      // loop to constantly listen for packets from the Scheduler
-			      while (true) {
-			         try {
-						schedulerSocket.receive(receivePacket);
-					    System.out.println("\nFloor: Acknowledgement Packet received from scheduler:");
-				        System.out.println("Containing: " + new String(receivePacket.getData(),0,receivePacket.getLength()));
-				        pendingRequests--;
-				        
-				        if(pendingRequests == 0) {
-				        	endTime = System.currentTimeMillis();
-				        	System.out.println("\nSystem End Time (current time in milliseconds): " + endTime + " ms");
-				        	elapsedTime = endTime - startTime;
-				        	System.out.println("\nThe system took " + elapsedTime + " ms to run the entire input file.");
-				        	System.exit(1);
-				        }
-					} catch (IOException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-			      }
-			      
-			} catch (SocketException e) {
-				e.printStackTrace();
-			} 
-		   };
-	        new Thread(floorReceiver).start();
-	   }
+	/**
+	 * Constantly listens for an acknowledgement from the scheduler on a separate thread
+	 * so it can receive the acknowledgement when the elevator is done processing the request   
+	 * @param port	an int, the port number of the socket
+	 */
+	public void receiveAcknowledgement(int port) {
+	   
+	   Runnable acknowledgementReceiver = () -> {
+	      // create a DatagramSocket and DatagramPacket to receive packets from the Scheduler
+	     DatagramSocket schedulerSocket = null;
+		try {
+			schedulerSocket = new DatagramSocket(port);
+		      byte[] receiveData = new byte[1024];
+		      DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
+	
+		      // loop to constantly listen for packets from the Scheduler
+		      while (true) {
+		         try {
+					schedulerSocket.receive(receivePacket);
+				    System.out.println("\nFloor: Acknowledgement Packet received from scheduler:");
+			        System.out.println("Containing: " + new String(receivePacket.getData(),0,receivePacket.getLength()));
+			        pendingRequests--;
+			        
+			        if(pendingRequests == 0) {
+			        	endTime = System.currentTimeMillis();
+			        	System.out.println("\nSystem End Time (current time in milliseconds): " + endTime + " ms");
+			        	elapsedTime = endTime - startTime;
+			        	System.out.println("\nThe system took " + elapsedTime + " ms to run the entire input file.");
+			        	System.exit(1);
+			        }
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+		      }
+		      
+		} catch (SocketException e) {
+			e.printStackTrace();
+		} 
+	   };
+        new Thread(acknowledgementReceiver).start();
+   }
 		   
 		   
 	   
 	/**
-	 * Send and receive DatagramPackets to/from scheduler 
+	 * Send and receive DatagramPackets to/from scheduler.
+	 * 
+	 * Sends the floor request to the scheduler and receives a reply 
+	 * from the scheduler that notifies the floor that it has received
+	 * the request.
 	 */
 	public void sendReceive() {
 	    byte floorData[] = new byte[1000];
@@ -235,15 +217,15 @@ public class Floor implements Runnable {
 	            System.exit(1);
 	        }
 	        
-	        //print the sent packet
+	        // print the sent packet
 	        System.out.println("\nFloor: Request sent to scheduler");
 	        System.out.println("Containing: " + new String(sendPacket.getData(),0,sendPacket.getLength()));
 	        
 	        
-	        //form packet to receive reply from scheduler
+	        // form packet to receive reply from scheduler
 	        receivePacket = new DatagramPacket(floorReply, floorReply.length);
 	        
-	        //receive the reply packet from the scheduler
+	        // receive the reply packet from the scheduler
 	        try {        
 	            System.out.println("Floor: Waiting for reply from Scheduler..."); // so we know we're waiting
 	            replySocket.receive(receivePacket);
@@ -265,7 +247,7 @@ public class Floor implements Runnable {
 	        System.exit(1);
 	    }
 	
-}
+	}
 
 	/**
 	 * Used to run the Floor thread.
@@ -275,7 +257,6 @@ public class Floor implements Runnable {
         System.out.println("Starting at Floor\n");
         addTimes();
         unwrapData();
-//        sendReceive();
     }
 	
 	/**
@@ -308,7 +289,7 @@ public class Floor implements Runnable {
 	    Thread t1 = new Thread(f);
 	    
 	    t1.start();
-	    f.listenForSchedulerPackets(1500);
+	    f.receiveAcknowledgement(1500);
 	   }
 	
 }
