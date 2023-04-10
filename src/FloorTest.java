@@ -17,6 +17,9 @@ import org.junit.jupiter.api.Test;
 /**
  * JUnit Tests for Floor Class.
  * 
+ * @author Yash Kapoor
+ * @author Faiaz Ahsan
+ * @author Zeid Alwash
  * @author Fareen Lavji
  * @author Harishan Amutheesan
  * 
@@ -124,6 +127,7 @@ class FloorTest {
             testData = br.readLine();
         } catch (IOException e) {
             e.printStackTrace();
+
         }
 
         String[] elevatorData = testData.split(",");
