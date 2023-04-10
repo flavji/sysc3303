@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
  * @author Zeid Alwash
  * @author Fareen Lavji
  * @author Harishan Amutheesan
+ * 
  * @version Final Project Submission
  */
 class ElevatorTest {
