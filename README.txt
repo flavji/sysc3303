@@ -4,23 +4,31 @@ Email: ZeidAlwash@cmail.carleton.ca, YashKapoor@cmail.carleton.ca
 This program is made up of 8 files:
 	Floor.java: Floor Class that consists of the floor thread that executes first to send requests to the scheduler at the time of the request.
 	Scheduler.java: Scheduler Class that consists of a thread that is used as a communication channel between the clients (i.e., floor and elevator).
-	Elevator.java: Elevator Class that consists of the elevator thread that will execute after the scheduler sends the request.
-		       Receives the request from the scheduler, processes the request, and then sends an acknowledgement to the scheduler
-		       that indicates the request has been successfully serviced by the elevator.
-  		       There are a total of 4 elevators (a separate thread is used for each elevator).
-		       There are 8 states for each elevator: 
-		       0 (stationary), 1 (moving up), 2 (moving down), 3 (doors opening), 4 (doors closing),
-		       5 (floor fault), 6 (door fault), 7 (out of service)
-	ElevatorGUI.java: The ElevatorGUI class represents a graphical user interface for an elevator system.
-			  It extends the JFrame class and includes components such as text fields, labels, and icons
- 			  for displaying elevator information and status.
-	Pair.java: Pair Class that the Elevator Class uses to clearly differentiate one request from another and store Pair Objects in a queue. 
-	DestinationFloor.java: DestinationFloor Class that is used by the Elevator Class to move passengers to a specific destination floor.
- 			       It is used to differentiate destination floors of requests from initial floors of requests
- 			       For example, request: 2, 8 -> initial floor is 2 (passengers get picked up)
- 			       and destination floor is 8 (passengers get dropped off)
+	Elevator.java: Elevator Class that consists of the elevator thread that will 			   
+	               execute after the scheduler sends the request.
+			   Receives the request from the scheduler, processes the 
+			   request, and then sends an acknowledgement to the scheduler
+		         that indicates the request has been successfully serviced by
+			   the elevator. There are a total of 4 elevators (a separate 
+			   thread is used for each elevator).
+		         There are 8 states for each elevator: 
+		         0 (stationary), 1 (moving up), 2 (moving down), 3 (doors 
+		         opening), 4 (doors closing), 5 (floor fault), 6 (door fault), 
+                     7 (out of service)
+	ElevatorGUI.java: The ElevatorGUI class represents a graphical user 
+ 				interface for an elevator system. It extends the JFrame  
+		            class and includes components such as text fields, labels, 
+				and icons for displaying elevator information and status.
+	Pair.java: Pair Class that the Elevator Class uses to clearly differentiate 
+		     one request from another and store Pair Objects in a queue. 
+	DestinationFloor.java: DestinationFloor Class that is used by the Elevator 
+				     Class to move passengers to a specific destination 
+				     floor. It is used to differentiate destination floors 
+				     of requests from initial floors of requests
+ 			           For example, request: 2, 8 -> initial floor is 2 
+				     (passengers get picked up) and destination floor is 8 
+				     (passengers get dropped off)
 	
-
 Installation:
 -----------------
 Most versions of Java will be able to run this program, but JDK 18 is recommended. 
