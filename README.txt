@@ -1,31 +1,28 @@
-Author of this README file: Zeid Alwash 
-Email: ZeidAlwash@cmail.carleton.ca
+Authors of this README file: Zeid Alwash and Yash Kapoor
+Email: ZeidAlwash@cmail.carleton.ca, YashKapoor@cmail.carleton.ca 
 
-Description:
-------------
-There are three subsystems in this project: Floor, Elevator, and Scheduler.
-The scheduler is used as a communication channel between the clients (i.e., floor and elevator).
-The data in the CSV file gets passed from the floor -> scheduler -> elevator -> scheduler -> floor. 
-Specifically, the Floor subsystem reads the CSV file and sends the values to the scheduler.
-The scheduler stores those values in a queue AllFloorRequests, the elevator determines which requests are serviceable based on the first request and notifies the scheduler to store those requests in another queue serviceableRequests. The elevator then iterates through both queues until they're empty. The  execution of this program is simple. The Floor subsystem executes first and prints "Starting at Floor". Then, The Floor subsystem sends the data that it reads from the CSV file to the scheduler class. The scheduler notifies the elevator, which then begins executing and prints out "Elevator Success", along with the data in the CSV file. Then, the elevator sends a request back to the scheduler that it is done. Hence, the scheduler sends a request back to the floor, telling it to start executing again. Once the floor starts executing again, it prints out "Ending at Floor", along with the data in the CSV file. 
-
-This program is made up of 5 files:
-
-	Main.java: A class that consists of the main method. 
-		     It is used to control the program and start the floor, elevator, and scheduler threads.
-	Floor.java: A class that consists of the floor thread that will execute first to send a request to
-			the scheduler. Also, it is responsible for reading the CSV file and setting the FloorData
-			Object, which notifies the scheduler to send a request to the elevator.
-	Elevator.java: A class that consists of the elevator thread that will execute after the scheduler
-			   sends the requests.
-	Scheduler.java: A class that consists of the scheduler thread (i.e., server) that is used to as a
-			    a communication channel between the clients (i.e., floor and elevator).
-	FloorData.java: A class that stores the data defined in the CSV file (i.e., time, initial floor
-			    the elevator is at, the direction the elevator is going in (up or down), and the final
-                      floor the elevator arrives at). 
+This program is made up of 8 files:
+	Floor.java: Floor Class that consists of the floor thread that executes first to send requests to the scheduler at the time of the request.
+	Scheduler.java: Scheduler Class that consists of a thread that is used as a communication channel between the clients (i.e., floor and elevator).
+	Elevator.java: Elevator Class that consists of the elevator thread that will execute after the scheduler sends the request.
+		       Receives the request from the scheduler, processes the request, and then sends an acknowledgement to the scheduler
+		       that indicates the request has been successfully serviced by the elevator.
+  		       There are a total of 4 elevators (a separate thread is used for each elevator).
+		       There are 8 states for each elevator: 
+		       0 (stationary), 1 (moving up), 2 (moving down), 3 (doors opening), 4 (doors closing),
+		       5 (floor fault), 6 (door fault), 7 (out of service)
+	ElevatorGUI.java: The ElevatorGUI class represents a graphical user interface for an elevator system.
+			  It extends the JFrame class and includes components such as text fields, labels, and icons
+ 			  for displaying elevator information and status.
+	Pair.java: Pair Class that the Elevator Class uses to clearly differentiate one request from another and store Pair Objects in a queue. 
+	DestinationFloor.java: DestinationFloor Class that is used by the Elevator Class to move passengers to a specific destination floor.
+ 			       It is used to differentiate destination floors of requests from initial floors of requests
+ 			       For example, request: 2, 8 -> initial floor is 2 (passengers get picked up)
+ 			       and destination floor is 8 (passengers get dropped off)
+	
 
 Installation:
--------------
+-----------------
 Most versions of Java will be able to run this program, but JDK 18 is recommended. 
 
 A Java IDE such as Eclipse is recommended as well. 
@@ -36,8 +33,8 @@ on how to install it for popular operating systems:
 https://www.eclipse.org/downloads/packages/installer
 
 Usage:
--------
-Step 1: Save A3G8_milestone_2.zip to a folder of your choice.
+----------
+Step 1: Save A3G8_final_submission.zip to a folder of your choice.
 
 Step 2: Open Eclipse and ensure the "Java Browsing" perspective is selected
 	  by going to Window > Perspective > Open Perspective > Java Browsing.
@@ -46,7 +43,7 @@ Step 3: Click on File > Import from the Eclipse main menu.
 
 Step 4: Expand General, click on "Existing Projects into Workspace", and click Next.
 
-Step 5: Ensure that Select Archive File is checked and browse for A3G8_milestone_2.zip.
+Step 5: Ensure that Select Archive File is checked and browse for A3G8_final_submission.zip.
 
 Step 6: Click Finish. 
 
@@ -54,18 +51,19 @@ Step 7: The project should now be in Package Explorer.
 
 Step 8: Expand project and expand src.
 
-Step 9: Right click on the project package, click on "Run as", then select 
-	  "1 Java Application". The program should now run and you should
-	  see text being printed to the console that indicates whether the floor 
-	  or elevator is running. 
+Step 9: Click on the project package. You need to run the Scheduler Class first, then run the Elevator Class, then finally, run the Floor Class. Also, we included the GUI in the Elevator Class, so we have a GUI for each elevator (1, 2, 3, and 4). Hence, open the GUIs and spread them out on your screen to monitor which floor/state the elevator is currently on/in. You can also look at the console for each class (separate console for Floor, Scheduler, and Elevator since they are supposed to be running on separate computers), which provides a detailed description of what each Class is currently doing (e.g., floor sends request to scheduler, scheduler sends request to appropriate elevator, then elevator processes that request, and sends an acknowledgement to the scheduler, which sends that acknowledgement to the floor, indicating the request has been successfully processed by the elevator). 
 
-To find the sequence, UML diagram and State machine diagrams that we constructed for this assignment,
-extract all files from A3G8_milestone_2.zip. there should be elevatorSimulation_UML.png, elevatorSimulation_sequenceDiagram.png, Elevator_State_Machine_Diagram and Scheduler_State_Machine_Diagram in the root folder. 
+Step 10: IMPORTANT: to see the output of the floor, scheduler, and the elevator, you must click on “Display Selected Console” and click on the console of the class that you want to view the output of. If you cannot find where “Display Selected Console” is on Eclipse, then you can click on the console and press ALT + F7 on your keyboard to bring up the menu that allows you to switch between the consoles of each class.
+
+Testing:
+------------
+Once you are able to run the program, simply click on the SchedulerTest/ElevatorTest/ FloorTest/FloorDataTest JUnit classes to run the JUnit tests for our system. 
+
 
 Credits:
 -------
-- Yash Kapoor 		(Worked on code, refactoring code, UML)
-- Faiaz Ahsan 		(Worked on code, rough draft of UML, and Sequence Diagram)
-- Zeid Alwash 		(Worked on code and rough draft of UML and README)
-- Fareen Lavji	  	(Worked on refactoring code, JUnit Tests, and updating README) 
-- Harishan Amutheesan	(Worked on code,rough draft of UML, and State Machine Diagram)
+- Yash Kapoor 		
+- Faiaz Ahsan 		
+- Zeid Alwash 		
+- Fareen Lavji	  	 
+- Harishan Amutheesan	
