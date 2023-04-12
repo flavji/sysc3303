@@ -1,12 +1,22 @@
 import java.awt.*;
-import java.awt.event.WindowEvent;
-import java.io.File;
 import javax.swing.*;
-import javax.sound.sampled.AudioSystem;
-import javax.sound.sampled.Clip;
 
+/**
+ * The ElevatorGUI class represents a graphical user interface for an elevator system.
+ * It extends the JFrame class and includes components such as text fields, labels, and icons
+ * for displaying elevator information and status.
+ * 
+ * @author Yash Kapoor
+ * @author Faiaz Ahsan
+ * @author Zeid Alwash
+ * @author Fareen Lavji
+ * @author Harishan Amutheesan
+ *
+ */
 public class ElevatorGUI extends JFrame{
-    private JTextArea logArea;
+
+	private static final long serialVersionUID = 1L;
+	private JTextArea logArea;
     private JTextArea finishedRequests;
 
     /* elevator arrows*/
@@ -20,16 +30,18 @@ public class ElevatorGUI extends JFrame{
     private ImageIcon doorsOpening;
     private ImageIcon doorsClosing;
     private static String elevatorNumber;
-    
-   
-
-
 
     /* window setup */
     private JTextField elevatorFloors; // Labels for the current floors of each elevator
     private JTextField elevatorStats; // Labels for the stats of each elevator
     private JLabel elevatorDirections; // Labels for elevator directions
 
+    /**
+     * Constructor for ElevatorGUI
+     * Constructs an ElevatorGUI object with the given elevator number.
+     *
+     * @param elevatorNumber The number of the elevator.
+     */
     public ElevatorGUI(String elevatorNumber) {
     	
     	//Initialize the ImageIcons
@@ -82,7 +94,7 @@ public class ElevatorGUI extends JFrame{
 
         
         /* add floor numbers per elevator */       
-        elevatorFloors = new JTextField("2");
+        elevatorFloors = new JTextField("Floor: ");
         displayPanel.add(elevatorFloors);
 
         /* add direction arrows per elevator */
@@ -100,79 +112,91 @@ public class ElevatorGUI extends JFrame{
         
         finishedRequests = new JTextArea();
     	finishedRequests.setText("Finished Requests\n");
-        displayPanel.add(finishedRequests, BorderLayout.EAST);
-        
-        
-        
+        displayPanel.add(finishedRequests, BorderLayout.EAST);   
         
         setVisible(true);
     }
     
+    /**
+     * Updates the log area with the current request details.
+     *
+     * @param pair 	a Pair Object, the pair of initial and destination floors for the current request.
+     */
     public void updateLogArea(Pair<Integer, Integer> pair) {
     	logArea.setText("Current Request: Initial Floor: " + pair.getInitialFloor() + " and Destination Floor: " + pair.getDestinationFloor());
     }
     
+    /**
+     * Updates the finished requests text area with the provided requests.
+     *
+     * @param requests	a String, the requests to be displayed in the finished requests text area.
+     */
     public void updateFinishedRequests(String requests) {
-    	finishedRequests.setText(requests);
+    	finishedRequests.setText("Finished Requests:" + requests);
     }
     
+    /**
+     * Updates the elevator floor display with the current floor.
+     *
+     * @param currentFloor 	an int, the current floor of the elevator.
+     */
     public void updateElevatorFloor(int currentFloor) {
     	elevatorFloors.setText("Floor: " + currentFloor);
     }
 
+    /**
+     * Updates the elevator status display with the provided status.
+     *
+     * @param status The status of the elevator.
+     */
     public void updateElevatorStatus(int status) {
     	     
-        //later change this to Icon
         if(status == 0) {
         	elevatorDirections.setIcon(stationary);
-        	//elevatorDirections.setText("Direction: " + STATIONARY);
         }else if(status == 1) {
         	elevatorDirections.setIcon(up);
-        	elevatorStats.setText("Status: Elevator going up");
-        	//elevatorDirections.setText("Direction: " + UP);
-        	
+        	elevatorStats.setText("Status: Elevator going up");        	
         }else if(status == 2) {
         	elevatorDirections.setIcon(down);
         	elevatorStats.setText("Status: Elevator going down");
-        	//elevatorDirections.setText("Direction: " + DOWN);
         }else if(status == 3) {
         	elevatorDirections.setIcon(doorsOpening);
-        	//elevatorDirections.setText("Direction: " + STATIONARY);
         	elevatorStats.setText("Status: Elevator doors opening");
         	
         }else if(status == 4) {  	
         	elevatorDirections.setIcon(doorsClosing);
-        	//elevatorDirections.setText("Direction: " + STATIONARY);
         	elevatorStats.setText("Status: Elevator doors closing");
         	
         }else if(status == 5) {
         	elevatorDirections.setIcon(floorFault);
-        	//elevatorDirections.setText("Direction: " + STATIONARY);
         	elevatorStats.setText("Status: Elevator floor fault");
         	
         }else if(status == 6) {
         	elevatorDirections.setIcon(doorFault);
-        	//elevatorDirections.setText("Direction: " + STATIONARY);
         	elevatorStats.setText("Status: Elevator door fault");
         	
         }else if(status == 7) {
         	elevatorDirections.setIcon(outOfService);
-        	//elevatorDirections.setText("Direction: " + STATIONARY);
         	elevatorStats.setText("Status: Elevator is out of service");
         	
         } else if (status == 8) {
         	elevatorStats.setText("Status: Elevator finished request!");
         }
         
-    }
-    
-    
+    }   
  
-    //Method to close additional windows
+    /**
+     * Method to close additional windows
+     */
     public void closeGUI() { 	
     	dispose();
     }
 
+    /**
+     * Logs an error message to the log area.
+     *
+     * @param errorMessage 	a String, the error message to be logged.
+     */
     public void logError(String errorMessage) {
         logArea.append("Error: " + errorMessage + "\n");
     }

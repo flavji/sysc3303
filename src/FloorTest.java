@@ -23,7 +23,7 @@ import org.junit.jupiter.api.Test;
  * @author Fareen Lavji
  * @author Harishan Amutheesan
  * 
- * @version 03.27.2023
+ * @version Final Project Submission
  */
 class FloorTest {
     String floorRequests = "testFile.csv";
@@ -64,6 +64,8 @@ class FloorTest {
 
     /**
      * Test the unwrapData() method to ensure that it reads and parses the CSV file correctly.
+     * 
+     * Test was written in iteration 1, updated in iteration 3, 4, and 5
      */
     @Test
     void testUnwrapData() {
@@ -100,6 +102,8 @@ class FloorTest {
 
     /**
      * Test the run() method to ensure that the Floor thread starts without any issues.
+     * 
+     * Test was written in iteration 1
      */
     @Test
     void testRun() {
@@ -115,6 +119,8 @@ class FloorTest {
      * 
      * @throws IOException
      * @throws ParseException
+     * 
+     * Test was written in iteration 2
      */
     @Test
     void testSetFloorData() throws IOException, ParseException {
@@ -143,5 +149,37 @@ class FloorTest {
         assertEquals(iFloor, initialFloor);
         assertEquals(this.direction, direction);
         assertEquals(dFloor, destinationFloor);
+    }
+    
+    /**
+     * Test the addTimes() method to ensure that it correctly populates the times ArrayList.
+     * 
+     * Test was written in iteration 5
+     */
+    @Test
+    void testAddTimes() {
+        Floor floor = new Floor(floorRequests);
+        floor.addTimes();
+
+        // Read data from testFile.csv
+        String testData = "";
+        try (BufferedReader br = new BufferedReader(new FileReader(floorRequests))) {
+            testData = br.readLine();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        String[] elevatorData = testData.split(",");
+        String start_date = elevatorData[0];
+        DateFormat formatter = new SimpleDateFormat("HH:mm:ss");
+        Date date = null;
+        try {
+            date = (Date) formatter.parse(start_date);
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+
+        // Check if the first element in the times ArrayList is the same as the date from the testFile.csv
+        assertEquals(date, floor.getTimes().get(0));
     }
 }

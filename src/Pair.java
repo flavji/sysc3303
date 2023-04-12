@@ -3,7 +3,7 @@
  * clearly differentiate one request from another
  * and store Pair Objects in a queue. 
  * 
- * @author yashk
+ * @author Yash Kapoor (101163338)
  *
  * @param <Initial>		the initial floor of the request
  * @param <Destination>		the destination floor of the request

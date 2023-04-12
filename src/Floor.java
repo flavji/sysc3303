@@ -12,7 +12,8 @@ import java.net.UnknownHostException;
 import java.text.*;
 
 /**
- * Floor Class that consists of the floor thread that executes first to send a request to the scheduler.
+ * Floor Class that consists of the floor thread that executes first to send requests to the scheduler
+ * at the time of the request.
  * 
  * @author Yash Kapoor
  * @author Faiaz Ahsan
@@ -25,7 +26,7 @@ import java.text.*;
 public class Floor implements Runnable {
 	private String floorRequests;
 	private FloorData fdPacket;
-	private String csvRequests = "";
+	private String csvRequests;
 	private DatagramPacket sendPacket, receivePacket;
 	private ArrayList<Date> times;
 	private int pendingRequests;
@@ -40,9 +41,19 @@ public class Floor implements Runnable {
 	 */
 	public Floor(String floorRequests) {
 		this.floorRequests = floorRequests;
+		this.csvRequests = "";
 		this.times = new ArrayList<Date>();
 		this.pendingRequests = 0;
 		 
+	}
+	
+	/**
+	 * Testing purposes: retrieves the ArrayList of Date (time) objects.
+	 *
+	 * @return The ArrayList of Date objects.
+	 */
+	public ArrayList<Date> getTimes() {
+	    return times;
 	}
 	
 	/**
@@ -126,7 +137,6 @@ public class Floor implements Runnable {
 					lineNumber++;
 					continue;
 				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}			   
 			    
@@ -280,16 +290,15 @@ public class Floor implements Runnable {
 		
 		// wrapping floorData to String
 		csvRequests = fdPacket.getTime() + "," + fdPacket.getInitialFloor() + "," + fdPacket.getFloorButton() + "," + fdPacket.getDestinationFloor();
-//		csvRequests = csvRequests.concat(fdPacket.getTime() + "," + fdPacket.getInitialFloor() + "," + fdPacket.getFloorButton() + "," + fdPacket.getDestinationFloor() + "/");
 	}
 	
 	public static void main(String args[])
-	   {
+	 {
 	    Floor f = new Floor("./floorRequests.csv");
 	    Thread t1 = new Thread(f);
 	    
 	    t1.start();
 	    f.receiveAcknowledgement(1500);
-	   }
+	 }
 	
 }

@@ -14,11 +14,12 @@ import org.junit.jupiter.api.Test;
  * @author Harishan Amutheesan
  * 
  * @version Final Project Submission
+ * 
  */
 class ElevatorTest {
 
     static int portNumber = 8000;
-    Elevator e1, e2, e3, e4;
+    Elevator e1, e2, e3, e4, e5;
 
     /**
      * Set up method initializes Elevator objects before each test.
@@ -26,10 +27,19 @@ class ElevatorTest {
      */
     @BeforeEach
     void setUp() throws Exception {
+    	// Iteration 1
         e1 = new Elevator(portNumber++, "Elevator 1");
+        
+        // Iteration 2 and 3
         e2 = new Elevator(portNumber++, "Elevator 2");
+        
+        // Iteration 5
         e3 = new Elevator(portNumber++, "Elevator 3");
         e4 = new Elevator(portNumber++, "Elevator 4");
+        
+        // This is just for testing purposes
+        // In our original program, we only have 4 elevators
+        e5 = new Elevator(portNumber++, "Elevator 5");
     }
 
     /**
@@ -42,6 +52,8 @@ class ElevatorTest {
 
     /**
      * Test to verify if the elevator handles doors correctly when time exceeds 10 seconds.
+     * 
+     * Test was written in iteration 4
      */
     @Test
     void testHandleDoorsFailure() {
@@ -52,6 +64,8 @@ class ElevatorTest {
 
     /**
      * Test to verify if the elevator handles doors correctly when time is within 10 seconds.
+     * 
+     * Test was written in iteration 4
      */
     @Test
     void testHandleDoorsSuccess() {
@@ -62,6 +76,8 @@ class ElevatorTest {
 
     /**
      * Test to verify if the elevator moves between floors correctly.
+     * 
+     * Test was written in iteration 3
      */
     @Test
     void testMoveElevator() {
@@ -71,33 +87,38 @@ class ElevatorTest {
         assertFalse(e1.moveElevator(5, true));
 
         // Test moving between floors when time doesn't exceed 20 seconds
-        e1.setTimeBetweenFloors(10000);
-        e1.setCurrentFloor(2);
-        assertTrue(e1.moveElevator(4, true));
+        e2.setTimeBetweenFloors(8000);
+        e2.setCurrentFloor(2);
+        assertTrue(e2.moveElevator(4, true));
 
         // Test moving to the same floor
-        e1.setCurrentFloor(2);
-        assertTrue(e1.moveElevator(2, true));
+        e3.setCurrentFloor(2);
+        assertTrue(e3.moveElevator(2, true));
 
         // Test moving to a higher floor
-        e1.setCurrentFloor(2);
-        assertTrue(e1.moveElevator(5, true));
+        e4.setCurrentFloor(2);
+        assertTrue(e4.moveElevator(5, true));
 
         // Test moving to a lower floor
-        e1.setCurrentFloor(5);
-        assertTrue(e1.moveElevator(2, true));
+        e5.setCurrentFloor(5);
+        assertTrue(e5.moveElevator(2, true));
     }
 
     /**
      * Test to verify if the elevator returns the correct current floor.
+     * 
+     * Test was written in iteration 2
      */
     @Test
     void testGetCurrentFloor() {
+    	e1.setCurrentFloor(2);
         assertEquals(2, e1.getCurrentFloor());
     }
 
     /**
      * Test to verify if the elevator sets the current floor correctly.
+     * 
+     * Test was written in iteration 2
      */
     @Test
     void testSetCurrentFloor() {
@@ -107,6 +128,8 @@ class ElevatorTest {
 
     /**
      * Test to verify if multiple elevators handle doors correctly.
+     * 
+     * Test was written in iteration 5
      */
     @Test
     void testHandleDoorsMultipleElevators() {
@@ -132,6 +155,8 @@ class ElevatorTest {
 
 	/**
 	 * Test to verify if multiple elevators move between floors correctly.
+	 * 
+	 * Test was written in iteration 5
 	 */
 	@Test
 	void testMoveElevatorMultipleElevators() {
@@ -163,6 +188,8 @@ class ElevatorTest {
 
 	/**
 	 * Test to verify if multiple elevators return the correct current floor.
+	 * 
+	 * Test was written in iteration 5
 	 */
 	@Test
 	void testGetCurrentFloorMultipleElevators() {
@@ -179,6 +206,8 @@ class ElevatorTest {
 
 	/**
 	 * Test to verify if multiple elevators set the current floor correctly.
+	 * 
+	 * Test was written in iteration 5
 	 */
 	@Test
 	void testSetCurrentFloorMultipleElevators() {

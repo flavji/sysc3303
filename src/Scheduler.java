@@ -26,11 +26,11 @@ public class Scheduler {
 	
 	private ArrayList<Elevator> elevators; // collection of elevators
 	private Queue<FloorData> allFloorRequests;   // a queue of all requests in the CSV file
-	private int[] portNumbers = new int[5];
+	private int[] portNumbers;
 	private String elevatorAck = "";
-	private Object lock = new Object();
-	private volatile boolean elevatorsAvailable = true;
-	private boolean shouldRequestUpdate = true;
+	private final Object lock = new Object();
+	private volatile boolean elevatorsAvailable;
+	private boolean shouldRequestUpdate;
 	
 	DatagramPacket receivePacketFloor, receiveAcknowledgementFloor, receivePacketElevatorOne, receivePacketElevatorTwo, receivePacketElevatorThree,
 	receivePacketElevatorFour, sendPacketFloor, sendPacketElevator1, sendPacketElevator2, sendPacketElevator3, sendPacketElevator4, sendAckPacketFloor;
@@ -43,7 +43,9 @@ public class Scheduler {
 		
 		this.elevators = new ArrayList<Elevator>();
 		this.allFloorRequests = new LinkedList<FloorData>();
-		
+		this.elevatorsAvailable = true;
+		this.shouldRequestUpdate = true;
+		this.portNumbers = new int[5];
 		// initialize ports, assumption: 2 elevators by default
 		portNumbers[0] = 50;
 		portNumbers[1] = 29;
@@ -74,6 +76,16 @@ public class Scheduler {
 	}
 	
 	/**
+	 * Testing purposes: retrieves the ArrayList of Elevator objects.
+	 *
+	 * @return The ArrayList of Elevator objects.
+	 */
+	public ArrayList<Elevator> getElevators() {
+	    return elevators;
+	}
+
+	
+	/**
 	 * Add requests to the allFloorRequests queue
 	 * @param fd	a FloorData Object that gets added to the queue
 	 */
@@ -83,7 +95,7 @@ public class Scheduler {
 	}
 	
 	/**
-	 * remove the first FloorData Object from the allFloorRequests queue
+	 * Remove the first FloorData Object from the allFloorRequests queue
 	 */
 	public void removeRequests() {
 		allFloorRequests.remove();
@@ -144,7 +156,7 @@ public class Scheduler {
 	 * state of the elevator is.
 	 * @param port	an int, the port number of the socket
 	 */
-    public void receiveElevatorStatus(int port) {
+    private void receiveElevatorStatus(int port) {
         Runnable elevatorStatusReceiver = () -> {
             DatagramSocket socket = null;
             try {
@@ -209,8 +221,7 @@ public class Scheduler {
 	 * 
 	 * If there are no serviceable elevators available, then this method returns 0.
 	 */
-	public int checkServiceableRequest(FloorData fd) {
-		
+	public int checkServiceableRequest(FloorData fd) {		
 		// First Case: go through the elevators and assign the request to the closest elevator that is stationary 
 		boolean elevatorFound = false;
 		int minDist = Integer.MAX_VALUE;
@@ -226,7 +237,6 @@ public class Scheduler {
 			}
 		}
 		if (elevatorFound) {
-			System.out.println("ELEVATOR NUMBER: " + elevatorIdx);
 			elevators.get(elevatorIdx).setState(fd.getDestinationFloor() < elevators.get(elevatorIdx).getCurrentFloor() ? 2 : 1);
 		    return 5000 + (elevatorIdx * 1000);
 		}
@@ -252,7 +262,7 @@ public class Scheduler {
 
 			    // request and elevator's direction are the same (up) and the initial floor of the request lies
 			    // the current floor of the elevator and the destination floor of the request
-			    if ((upDirection && elevator.getState() == 1) && fd.getInitialFloor() >= elevator.getInitialRequest().getInitialFloor() && 
+			    if (upDirection && fd.getInitialFloor() >= elevator.getInitialRequest().getInitialFloor() && 
 		                fd.getInitialFloor() > elevator.getCurrentFloor() && 
 		                fd.getInitialFloor() <= elevator.getInitialRequest().getDestinationFloor()) {
 			        int distance = fd.getInitialFloor() - elevator.getCurrentFloor();
@@ -264,9 +274,9 @@ public class Scheduler {
 			    } 
 			    // request and elevator's direction are the same (down) and the initial floor of the request lies
 			    // the current floor of the elevator and the destination floor of the request
-			    else if ((downDirection && elevator.getState() == 2) && fd.getInitialFloor() >= elevator.getInitialRequest().getInitialFloor() && 
+			    else if (downDirection && fd.getInitialFloor() <= elevator.getInitialRequest().getInitialFloor() && 
 	                       fd.getInitialFloor() < elevator.getCurrentFloor() && 
-	                       fd.getInitialFloor() <= elevator.getInitialRequest().getDestinationFloor()) {
+	                       fd.getInitialFloor() >= elevator.getInitialRequest().getDestinationFloor()) {
 			        int distance = elevator.getCurrentFloor() - fd.getInitialFloor();			        
 			        // assign to closest elevator if it is true for multiple elevators
 			        if (distance < minDistance) {
@@ -409,7 +419,7 @@ public class Scheduler {
 	    FloorData currentRequestElevatorFour = elevators.get(3).getCurrentRequest();
 	    
 	    // Remove the element from the queue after sending it to the elevator
-	    allFloorRequests.remove();
+	    removeRequests();
 	    
 	    receivePacket = new DatagramPacket(reply, reply.length);
 	    
@@ -427,12 +437,20 @@ public class Scheduler {
 	    
 	    // print the received datagram from the elevator
 	    System.out.println("\nScheduler: Acknowledgement Packet received from Elevator:");
-	    System.out.println("Containing: " + new String(receivePacket.getData(),0,receivePacket.getLength()));
+	    String elevatorMessage = new String(receivePacket.getData(),0,receivePacket.getLength());
+	    System.out.println("Containing: " + elevatorMessage);
 	    
 	    // Once acknowledgement packet is received, we know the elevator is stationary and 
 	    // is not processing any requests
 	    int elevatorIndex = portNumber == 5000 ? 0 : portNumber == 6000 ? 1 : portNumber == 7000 ? 2 : 3;
-	    elevators.get(elevatorIndex).setState(0);
+	    if(!elevatorMessage.contains("unsuccessful")) {
+	    	// if no faults have occurred, then the elevator is set back to stationary
+		    elevators.get(elevatorIndex).setState(0);
+	    } else {
+	    	// elevator is out of service due to floor/permanent door fault
+	    	// as request cannot be processed successfully
+		    elevators.get(elevatorIndex).setState(7);
+	    }
 	    
 	    System.out.println("\nElevator " + (portNumber == 5000 ? 1 : portNumber == 6000 ? 2 : portNumber == 7000 ? 3 : 4) + " is Stationary\n");
 	    
@@ -441,16 +459,16 @@ public class Scheduler {
 	    // instantiate the Ack from the elevator
 	    elevatorAck = new String(receivePacket.getData(),0,receivePacket.getLength());
 	    if(portNumber == 5000) {
-		    elevatorAck += " successfully processed request: initial floor: " + currentRequestElevatorOne.getInitialFloor() + " and destination floor: " + currentRequestElevatorOne.getDestinationFloor();
+		    elevatorAck += " processed request: initial floor: " + currentRequestElevatorOne.getInitialFloor() + " and destination floor: " + currentRequestElevatorOne.getDestinationFloor();
 		    elevatorAck += " \nas it arrived at floor " + currentRequestElevatorOne.getDestinationFloor();
 	    } else if (portNumber == 6000) {
-		    elevatorAck += " successfully processed request: initial floor: " + currentRequestElevatorTwo.getInitialFloor() + " and destination floor: " + currentRequestElevatorTwo.getDestinationFloor();
+		    elevatorAck += " processed request: initial floor: " + currentRequestElevatorTwo.getInitialFloor() + " and destination floor: " + currentRequestElevatorTwo.getDestinationFloor();
 		    elevatorAck += " \nas it arrived at floor " + currentRequestElevatorTwo.getDestinationFloor();
 	    } else if (portNumber == 7000) {
-		    elevatorAck += " successfully processed request: initial floor: " + currentRequestElevatorThree.getInitialFloor() + " and destination floor: " + currentRequestElevatorThree.getDestinationFloor();
+		    elevatorAck += " processed request: initial floor: " + currentRequestElevatorThree.getInitialFloor() + " and destination floor: " + currentRequestElevatorThree.getDestinationFloor();
 		    elevatorAck += " \nas it arrived at floor " + currentRequestElevatorThree.getDestinationFloor();
 	    } else if (portNumber == 8000) {
-		    elevatorAck += " successfully processed request: initial floor: " + currentRequestElevatorFour.getInitialFloor() + " and destination floor: " + currentRequestElevatorFour.getDestinationFloor();
+		    elevatorAck += " processed request: initial floor: " + currentRequestElevatorFour.getInitialFloor() + " and destination floor: " + currentRequestElevatorFour.getDestinationFloor();
 		    elevatorAck += " \nas it arrived at floor " + currentRequestElevatorFour.getDestinationFloor();
 	    }
 	    

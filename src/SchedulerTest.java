@@ -28,6 +28,10 @@ class SchedulerTest {
      */
     @BeforeEach
     void setUp() throws Exception {
+    	s.getElevators().get(0).setCurrentFloor(2);
+        s.getElevators().get(1).setCurrentFloor(2);
+        s.getElevators().get(2).setCurrentFloor(2);
+        s.getElevators().get(3).setCurrentFloor(2);
     }
 
     /**
@@ -42,6 +46,8 @@ class SchedulerTest {
     /**
      * Tests the addRequests method. The method should add a new FloorData object to
      * the scheduler's list of all requests and return true.
+     * 
+     * Test was written in iteration 2, updated in iteration 3, 4, and 5
      */
     @Test
     void testAddRequests() {

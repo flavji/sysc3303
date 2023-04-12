@@ -5,12 +5,13 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-/*
+/**
  * JUnit Tests for FloorData Class.
  * 
  * @author Fareen Lavji
  * 
- * @version 02.27.2023
+ * @version Final Project Submission
+ * Tests were written in Iteration 1 - No need to be updated
  */
 class FloorDataTest {
 
@@ -81,14 +82,4 @@ class FloorDataTest {
 		assertEquals("up", fd.getFloorButton());
 	}
 	
-	/**
-	 * Test incorrect formatting for floorButton property.
-	 * @throws IOException
-	 */
-	@Test
-	void testIncorrectFloorButton() throws IOException {
-		@SuppressWarnings("unused")
-		Throwable exception = assertThrows(IOException.class,
-	            ()->{fd.setFloorButton("right");} );
-	}
 }

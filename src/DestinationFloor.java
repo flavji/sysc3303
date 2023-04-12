@@ -7,7 +7,7 @@
  *  
  * For example, request: 2, 8 -> initial floor is 2 (passengers get picked up)
  * and destination floor is 8 (passengers get dropped off)
- * @author yashk
+ * @author Yash Kapoor (101163338)
  *
  */
 public class DestinationFloor {
