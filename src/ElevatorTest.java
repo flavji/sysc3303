@@ -93,6 +93,7 @@ class ElevatorTest {
      */
     @Test
     void testGetCurrentFloor() {
+    	e1.setCurrentFloor(2);
         assertEquals(2, e1.getCurrentFloor());
     }
 

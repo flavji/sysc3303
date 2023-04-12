@@ -28,6 +28,10 @@ class SchedulerTest {
      */
     @BeforeEach
     void setUp() throws Exception {
+    	s.elevators.get(0).setCurrentFloor(2);
+        s.elevators.get(1).setCurrentFloor(2);
+        s.elevators.get(2).setCurrentFloor(2);
+        s.elevators.get(3).setCurrentFloor(2);
     }
 
     /**
